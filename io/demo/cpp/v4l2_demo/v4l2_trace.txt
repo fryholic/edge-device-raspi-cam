@@ -1,0 +1,80 @@
+ioctl(3, VIDIOC_QUERYCAP, {driver="unicam", card="unicam", bus_info="platform:fe801000.csi", version=KERNEL_VERSION(6, 12, 25), capabilities=V4L2_CAP_VIDEO_CAPTURE|V4L2_CAP_EXT_PIX_FORMAT|V4L2_CAP_META_CAPTURE|V4L2_CAP_READWRITE|V4L2_CAP_STREAMING|V4L2_CAP_DEVICE_CAPS|0x20000000, device_caps=V4L2_CAP_VIDEO_CAPTURE|V4L2_CAP_EXT_PIX_FORMAT|V4L2_CAP_READWRITE|V4L2_CAP_STREAMING|0x20000000}) = 0
+ioctl(3, VIDIOC_QUERY_EXT_CTRL, {id=V4L2_CTRL_FLAG_NEXT_CTRL|V4L2_CTRL_FLAG_NEXT_COMPOUND|0 /* V4L2_CID_??? */}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_TRY_EXT_CTRLS, {ctrl_class=0 /* V4L2_CTRL_CLASS_??? */, count=0}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CTRL_FLAG_NEXT_CTRL|0 /* V4L2_CID_??? */}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_G_SELECTION, 0x7fd9bc3a98) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCAP, {driver="unicam", card="unicam", bus_info="platform:fe801000.csi", version=KERNEL_VERSION(6, 12, 25), capabilities=V4L2_CAP_VIDEO_CAPTURE|V4L2_CAP_EXT_PIX_FORMAT|V4L2_CAP_META_CAPTURE|V4L2_CAP_READWRITE|V4L2_CAP_STREAMING|V4L2_CAP_DEVICE_CAPS|0x20000000, device_caps=V4L2_CAP_VIDEO_CAPTURE|V4L2_CAP_EXT_PIX_FORMAT|V4L2_CAP_READWRITE|V4L2_CAP_STREAMING|0x20000000}) = 0
+ioctl(3, VIDIOC_QUERY_EXT_CTRL, {id=V4L2_CTRL_FLAG_NEXT_CTRL|V4L2_CTRL_FLAG_NEXT_COMPOUND|0 /* V4L2_CID_??? */}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CTRL_FLAG_NEXT_CTRL|V4L2_CTRL_FLAG_NEXT_COMPOUND|0 /* V4L2_CID_??? */}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BRIGHTNESS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_CONTRAST}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_SATURATION}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_HUE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CTRL_CLASS_USER+0x904}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_VOLUME}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_BASS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_TREBLE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_MUTE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUDIO_LOUDNESS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BLACK_LEVEL}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUTO_WHITE_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_DO_WHITE_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_RED_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BLUE_BALANCE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_GAMMA}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_EXPOSURE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUTOGAIN}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_GAIN}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_HFLIP}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_VFLIP}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_HCENTER}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_VCENTER}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_POWER_LINE_FREQUENCY}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_HUE_AUTO}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_WHITE_BALANCE_TEMPERATURE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_SHARPNESS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BACKLIGHT_COMPENSATION}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_CHROMA_AGC}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_COLOR_KILLER}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_COLORFX}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_AUTOBRIGHTNESS}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BAND_STOP_FILTER}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_ROTATE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_BG_COLOR}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_CHROMA_GAIN}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_ILLUMINATORS_1}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_ILLUMINATORS_2}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_MIN_BUFFERS_FOR_CAPTURE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_MIN_BUFFERS_FOR_OUTPUT}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_ALPHA_COMPONENT}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=V4L2_CID_COLORFX_CBCR}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_QUERYCTRL, {id=0x8000000 /* V4L2_CID_??? */}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_G_FMT, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, fmt.pix={width=640, height=480, pixelformat=v4l2_fourcc('R', 'G', 'B', '3') /* V4L2_PIX_FMT_RGB24 */, field=V4L2_FIELD_NONE, bytesperline=1920, sizeimage=921600, colorspace=V4L2_COLORSPACE_SRGB}}) = 0
+ioctl(3, VIDIOC_ENUM_FMT, {index=0, type=V4L2_BUF_TYPE_VIDEO_CAPTURE, flags=0, description="YUYV 4:2:2", pixelformat=v4l2_fourcc('Y', 'U', 'Y', 'V') /* V4L2_PIX_FMT_YUYV */}) = 0
+ioctl(3, VIDIOC_ENUM_FMT, {index=1, type=V4L2_BUF_TYPE_VIDEO_CAPTURE, flags=0, description="UYVY 4:2:2", pixelformat=v4l2_fourcc('U', 'Y', 'V', 'Y') /* V4L2_PIX_FMT_UYVY */}) = 0
+ioctl(3, VIDIOC_ENUM_FMT, {index=2, type=V4L2_BUF_TYPE_VIDEO_CAPTURE, flags=0, description="YVYU 4:2:2", pixelformat=v4l2_fourcc('Y', 'V', 'Y', 'U') /* V4L2_PIX_FMT_YVYU */}) = 0
+ioctl(3, VIDIOC_ENUM_FMT, {index=3, type=V4L2_BUF_TYPE_VIDEO_CAPTURE, flags=0, description="VYUY 4:2:2", pixelformat=v4l2_fourcc('V', 'Y', 'U', 'Y') /* V4L2_PIX_FMT_VYUY */}) = 0
+ioctl(3, VIDIOC_ENUM_FMT, {index=4, type=V4L2_BUF_TYPE_VIDEO_CAPTURE, flags=0, description="16-bit RGB 5-6-5", pixelformat=v4l2_fourcc('R', 'G', 'B', 'P') /* V4L2_PIX_FMT_RGB565 */}) = 0
+ioctl(3, VIDIOC_ENUM_FMT, {index=5, type=V4L2_BUF_TYPE_VIDEO_CAPTURE, flags=0, description="16-bit RGB 5-6-5 BE", pixelformat=v4l2_fourcc('R', 'G', 'B', 'R') /* V4L2_PIX_FMT_RGB565X */}) = 0
+ioctl(3, VIDIOC_ENUM_FMT, {index=6, type=V4L2_BUF_TYPE_VIDEO_CAPTURE, flags=0, description="16-bit A/XRGB 1-5-5-5", pixelformat=v4l2_fourcc('R', 'G', 'B', 'O') /* V4L2_PIX_FMT_RGB555 */}) = 0
+ioctl(3, VIDIOC_ENUM_FMT, {index=7, type=V4L2_BUF_TYPE_VIDEO_CAPTURE, flags=0, description="16-bit A/XRGB 1-5-5-5 BE", pixelformat=v4l2_fourcc('R', 'G', 'B', 'Q') /* V4L2_PIX_FMT_RGB555X */}) = 0
+ioctl(3, VIDIOC_ENUM_FMT, {index=8, type=V4L2_BUF_TYPE_VIDEO_CAPTURE, flags=0, description="24-bit RGB 8-8-8", pixelformat=v4l2_fourcc('R', 'G', 'B', '3') /* V4L2_PIX_FMT_RGB24 */}) = 0
+ioctl(3, VIDIOC_S_FMT, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, fmt.pix={width=640, height=480, pixelformat=v4l2_fourcc('R', 'G', 'B', '3') /* V4L2_PIX_FMT_RGB24 */, field=V4L2_FIELD_NONE, bytesperline=0, sizeimage=921600, colorspace=V4L2_COLORSPACE_SRGB}} => {fmt.pix={width=640, height=480, pixelformat=v4l2_fourcc('R', 'G', 'B', '3') /* V4L2_PIX_FMT_RGB24 */, field=V4L2_FIELD_NONE, bytesperline=1920, sizeimage=921600, colorspace=V4L2_COLORSPACE_SRGB}}) = 0
+ioctl(3, VIDIOC_CROPCAP, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_CROPCAP, {type=V4L2_BUF_TYPE_VIDEO_OUTPUT}) = -1 ENOTTY (Inappropriate ioctl for device)
+ioctl(3, VIDIOC_SUBSCRIBE_EVENT, 0x7fd9bbfdc8) = -1 EINVAL (Invalid argument)
+ioctl(3, VIDIOC_G_INPUT, [0])           = 0
+ioctl(3, VIDIOC_ENUMINPUT, {index=0, name="unicam-image", type=V4L2_INPUT_TYPE_CAMERA}) = 0
+ioctl(3, VIDIOC_REQBUFS, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, memory=V4L2_MEMORY_MMAP, count=4 => 4}) = 0
+ioctl(3, VIDIOC_QUERYBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=0, memory=V4L2_MEMORY_MMAP, m.offset=0, length=921600, bytesused=0, flags=V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC|V4L2_BUF_FLAG_TSTAMP_SRC_EOF, ...}) = 0
+ioctl(3, VIDIOC_QUERYBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=1, memory=V4L2_MEMORY_MMAP, m.offset=0x8000, length=921600, bytesused=0, flags=V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC|V4L2_BUF_FLAG_TSTAMP_SRC_EOF, ...}) = 0
+ioctl(3, VIDIOC_QUERYBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=2, memory=V4L2_MEMORY_MMAP, m.offset=0x10000, length=921600, bytesused=0, flags=V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC|V4L2_BUF_FLAG_TSTAMP_SRC_EOF, ...}) = 0
+ioctl(3, VIDIOC_QUERYBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=3, memory=V4L2_MEMORY_MMAP, m.offset=0x18000, length=921600, bytesused=0, flags=V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC|V4L2_BUF_FLAG_TSTAMP_SRC_EOF, ...}) = 0
+ioctl(3, VIDIOC_QBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=0, memory=V4L2_MEMORY_MMAP, m.offset=0, length=921600, bytesused=921600, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_QUEUED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC|V4L2_BUF_FLAG_TSTAMP_SRC_EOF, ...}) = 0
+ioctl(3, VIDIOC_QBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=1, memory=V4L2_MEMORY_MMAP, m.offset=0x8000, length=921600, bytesused=921600, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_QUEUED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC|V4L2_BUF_FLAG_TSTAMP_SRC_EOF, ...}) = 0
+ioctl(3, VIDIOC_QBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=2, memory=V4L2_MEMORY_MMAP, m.offset=0x10000, length=921600, bytesused=921600, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_QUEUED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC|V4L2_BUF_FLAG_TSTAMP_SRC_EOF, ...}) = 0
+ioctl(3, VIDIOC_QBUF, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, index=3, memory=V4L2_MEMORY_MMAP, m.offset=0x18000, length=921600, bytesused=921600, flags=V4L2_BUF_FLAG_MAPPED|V4L2_BUF_FLAG_QUEUED|V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC|V4L2_BUF_FLAG_TSTAMP_SRC_EOF, ...}) = 0
+ioctl(3, VIDIOC_G_FMT, {type=V4L2_BUF_TYPE_VIDEO_CAPTURE, fmt.pix={width=640, height=480, pixelformat=v4l2_fourcc('R', 'G', 'B', '3') /* V4L2_PIX_FMT_RGB24 */, field=V4L2_FIELD_NONE, bytesperline=1920, sizeimage=921600, colorspace=V4L2_COLORSPACE_SRGB}}) = 0
+ioctl(3, VIDIOC_STREAMON, [V4L2_BUF_TYPE_VIDEO_CAPTURE]) = -1 EINVAL (Invalid argument)
++++ exited with 0 +++

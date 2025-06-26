@@ -81,6 +81,10 @@ private:
         // 지원되는 포맷과 해상도 조회
         list_supported_formats();
         check_supported_resolutions();
+        
+        // 하드웨어 제한 및 프레임률 확인
+        check_hardware_capabilities();
+        check_and_set_framerate();
 
         // 현재 형식 확인
         struct v4l2_format current_fmt = {};
@@ -105,21 +109,30 @@ private:
             throw std::runtime_error("Failed to get format");
         }
 
-        // 1920x1080 해상도와 YUYV 포맷으로 설정 (기존 해상도 유지)
+        // 1920x1080 해상도와 MJPEG 포맷 설정 시도 (더 높은 FPS를 위해)
         fmt.fmt.pix.width = 1920;
         fmt.fmt.pix.height = 1080;
-        fmt.fmt.pix.pixelformat = v4l2_fourcc('Y', 'U', 'Y', 'V');
+        fmt.fmt.pix.pixelformat = v4l2_fourcc('M', 'J', 'P', 'G');
 
-        std::cout << "\nTrying to set 1920x1080 resolution with YUYV format..." << std::endl;
+        std::cout << "\nTrying to set 1920x1080 resolution with MJPEG format..." << std::endl;
 
         if (ioctl(fd_, VIDIOC_S_FMT, &fmt) == -1) {
-            std::cerr << "VIDIOC_S_FMT failed: " << strerror(errno) << std::endl;
-            // 실패 시 현재 설정으로 계속 진행
-            if (ioctl(fd_, VIDIOC_G_FMT, &fmt) == -1) {
-                throw std::runtime_error("Failed to get format after S_FMT failure");
+            std::cerr << "MJPEG format failed, trying YUYV: " << strerror(errno) << std::endl;
+            // MJPEG 실패 시 YUYV로 폴백
+            fmt.fmt.pix.pixelformat = v4l2_fourcc('Y', 'U', 'Y', 'V');
+            std::cout << "Trying to set 1920x1080 resolution with YUYV format..." << std::endl;
+            
+            if (ioctl(fd_, VIDIOC_S_FMT, &fmt) == -1) {
+                std::cerr << "VIDIOC_S_FMT failed: " << strerror(errno) << std::endl;
+                // 실패 시 현재 설정으로 계속 진행
+                if (ioctl(fd_, VIDIOC_G_FMT, &fmt) == -1) {
+                    throw std::runtime_error("Failed to get format after S_FMT failure");
+                }
+            } else {
+                std::cout << "Successfully set to 1920x1080 with YUYV!" << std::endl;
             }
         } else {
-            std::cout << "Successfully set to 1920x1080 with YUYV!" << std::endl;
+            std::cout << "Successfully set to 1920x1080 with MJPEG!" << std::endl;
         }
 
         // 실제 설정된 값으로 업데이트
@@ -244,6 +257,65 @@ private:
             } else {
                 std::cout << "  ✗ " << res.first << "x" << res.second << " not supported" << std::endl;
             }
+        }
+    }
+
+    void check_and_set_framerate() {
+        std::cout << "\nChecking current framerate capabilities..." << std::endl;
+        
+        // 현재 프레임률 확인
+        struct v4l2_streamparm parm = {};
+        parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        
+        if (ioctl(fd_, VIDIOC_G_PARM, &parm) == 0) {
+            if (parm.parm.capture.capability & V4L2_CAP_TIMEPERFRAME) {
+                double current_fps = (double)parm.parm.capture.timeperframe.denominator / 
+                                   parm.parm.capture.timeperframe.numerator;
+                std::cout << "Current FPS: " << current_fps << std::endl;
+                std::cout << "Timeperframe: " << parm.parm.capture.timeperframe.numerator 
+                         << "/" << parm.parm.capture.timeperframe.denominator << std::endl;
+            } else {
+                std::cout << "Device does not support framerate control" << std::endl;
+            }
+        }
+        
+        // 30fps 설정 시도
+        std::cout << "Attempting to set 30 FPS..." << std::endl;
+        parm.parm.capture.timeperframe.numerator = 1;
+        parm.parm.capture.timeperframe.denominator = 30;
+        
+        if (ioctl(fd_, VIDIOC_S_PARM, &parm) == 0) {
+            std::cout << "Successfully requested 30 FPS" << std::endl;
+            
+            // 실제 설정된 값 확인
+            if (ioctl(fd_, VIDIOC_G_PARM, &parm) == 0) {
+                double actual_fps = (double)parm.parm.capture.timeperframe.denominator / 
+                                  parm.parm.capture.timeperframe.numerator;
+                std::cout << "Actual FPS set to: " << actual_fps << std::endl;
+            }
+        } else {
+            std::cerr << "Failed to set framerate: " << strerror(errno) << std::endl;
+        }
+    }
+
+    void check_hardware_capabilities() {
+        std::cout << "\nChecking hardware capabilities..." << std::endl;
+        
+        // 버퍼 정보 확인
+        struct v4l2_requestbuffers req = {};
+        req.count = 0;  // 현재 할당된 버퍼 수 확인
+        req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        req.memory = V4L2_MEMORY_MMAP;
+        
+        if (ioctl(fd_, VIDIOC_REQBUFS, &req) == 0) {
+            std::cout << "Current allocated buffers: " << req.count << std::endl;
+        }
+        
+        // 드라이버 정보 재확인
+        struct v4l2_capability cap = {};
+        if (ioctl(fd_, VIDIOC_QUERYCAP, &cap) == 0) {
+            std::cout << "Driver version: " << ((cap.version >> 16) & 0xFF) << "."
+                      << ((cap.version >> 8) & 0xFF) << "." << (cap.version & 0xFF) << std::endl;
         }
     }
 
@@ -514,13 +586,13 @@ void save_frame_as_image(const CapturedFrame& frame, int frame_count, int width,
         cv::imwrite("frame_" + std::to_string(frame_count) + "_yuyv_to_bgr.jpg", bgr);
         std::cout << "Frame " << frame_count << " (YUYV) image saved!" << std::endl;
 
-    } else if (format == v4l2_fourcc('J', 'P', 'E', 'G')) {
-        // JPEG 데이터는 바로 파일에 쓸 수 있음
+    } else if (format == v4l2_fourcc('J', 'P', 'E', 'G') || format == v4l2_fourcc('M', 'J', 'P', 'G')) {
+        // JPEG/MJPEG 데이터는 바로 파일에 쓸 수 있음
         std::string filename = "frame_" + std::to_string(frame_count) + "_original.jpeg";
         std::ofstream file(filename, std::ios::binary);
         file.write((char*)raw_data, frame.size);
         file.close();
-        std::cout << "Frame " << frame_count << " (JPEG) image saved!" << std::endl;
+        std::cout << "Frame " << frame_count << " (JPEG/MJPEG) image saved!" << std::endl;
 
     } else {
         std::cout << "Unsupported format for saving: 0x" << std::hex << format << std::dec 
@@ -558,7 +630,7 @@ int main() {
         int total_frames = 0;
         int images_saved = 0;
         const int max_images_to_save = 5;
-        const int timing_frames = 30;  // 30프레임마다 출력
+        const int timing_frames = 50;  // 50프레임마다 출력 (부하 감소)
         
         while (true) {
             auto now = std::chrono::high_resolution_clock::now();

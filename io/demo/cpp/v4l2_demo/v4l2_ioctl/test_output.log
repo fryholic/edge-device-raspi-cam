@@ -1,0 +1,107 @@
+Starting V4L2 Camera Test with optimizations...
+Attempting to use DMA-BUF for buffer management...
+Device opened successfully: /dev/video0
+Querying device capabilities...
+Device capabilities queried successfully.
+Device: bcm2835 mmal (mmal service 16.1)
+Bus info: platform:bcm2835_v4l2-0
+Device supports video capture and streaming.
+Supported formats:
+  0: Planar YUV 4:2:0 (0x32315559) [YU12]
+  1: YUYV 4:2:2 (0x56595559) [YUYV]
+  2: 24-bit RGB 8-8-8 (0x33424752) [RGB3]
+  3: JFIF JPEG (0x4745504a) [JPEG]
+  4: H.264 (0x34363248) [H264]
+  5: Motion-JPEG (0x47504a4d) [MJPG]
+  6: YVYU 4:2:2 (0x55595659) [YVYU]
+  7: VYUY 4:2:2 (0x59555956) [VYUY]
+  8: UYVY 4:2:2 (0x59565955) [UYVY]
+  9: Y/UV 4:2:0 (0x3231564e) [NV12]
+  10: 24-bit BGR 8-8-8 (0x33524742) [BGR3]
+  11: Planar YVU 4:2:0 (0x32315659) [YV12]
+  12: Y/VU 4:2:0 (0x3132564e) [NV21]
+  13: 32-bit XBGR 8-8-8-8 (0x34325852) [RX24]
+
+Checking supported resolutions for common formats...
+  ✓ 1920x1080 supported
+  ✓ 1640x1232 supported
+  ✓ 1280x720 supported
+  ✓ 640x480 supported
+  ✓ 320x240 supported
+
+Checking hardware capabilities...
+Current allocated buffers: 0
+Driver version: 6.12.25
+
+Checking current framerate capabilities...
+Current FPS: 30
+Timeperframe: 1/30
+Attempting to set 30 FPS...
+Successfully requested 30 FPS
+Actual FPS set to: 30
+Getting current format...
+Current format: 0x47504a4d [MJPG]
+Current size: 1920x1080
+Bytes per line: 0
+Getting default format...
+
+Trying to set 1920x1080 resolution with MJPEG format...
+Successfully set to 1920x1080 with MJPEG!
+Final format: 1920x1080
+Format: 0x47504a4d [MJPG]
+Bytes per line: 0
+Attempting to initialize DMA-BUF...
+DMA-BUF: Allocated 3 buffers
+DMA-BUF initialization complete, but using MMAP for buffer mapping.
+Allocated 3 buffers
+Buffer 0 mapped: length=2088960 offset=0
+Buffer 1 mapped: length=2088960 offset=32768
+Buffer 2 mapped: length=2088960 offset=65536
+3 buffers mapped successfully.
+Using MMAP for buffer management.
+Streaming started.
+Camera streaming started. Starting FPS measurement (no file saving)...
+Timing: select() took 4145 us, VIDIOC_DQBUF took 43 us.
+Frame 1 timing breakdown:
+  Capture: 4449 us
+  Save: 0 us
+  Release: 81 us
+  Total: 4530 us (220.751 FPS potential)
+Timing: select() took 2752 us, VIDIOC_DQBUF took 13 us.
+Frame 2 timing breakdown:
+  Capture: 2844 us
+  Save: 0 us
+  Release: 33 us
+  Total: 2878 us (347.464 FPS potential)
+Timing: select() took 1011 us, VIDIOC_DQBUF took 12 us.
+Frame 3 timing breakdown:
+  Capture: 3634 us
+  Save: 0 us
+  Release: 49 us
+  Total: 3683 us (271.518 FPS potential)
+Timing: select() took 4072 us, VIDIOC_DQBUF took 24 us.
+Frame 4 timing breakdown:
+  Capture: 4258 us
+  Save: 0 us
+  Release: 56 us
+  Total: 4314 us (231.803 FPS potential)
+Timing: select() took 1351 us, VIDIOC_DQBUF took 13 us.
+Frame 5 timing breakdown:
+  Capture: 1732 us
+  Save: 0 us
+  Release: 36 us
+  Total: 1769 us (565.291 FPS potential)
+Elapsed time: 1.53s, FPS: 19.58
+Elapsed time: 2.53s, FPS: 23.68
+Elapsed time: 3.53s, FPS: 25.48
+Elapsed time: 4.53s, FPS: 26.47
+Elapsed time: 5.54s, FPS: 27.09
+Elapsed time: 6.53s, FPS: 27.55
+Elapsed time: 7.53s, FPS: 27.88
+Elapsed time: 8.53s, FPS: 28.13
+Elapsed time: 9.53s, FPS: 28.33
+Elapsed time: 10.53s, FPS: 28.49
+Elapsed time: 11.54s, FPS: 28.60
+Elapsed time: 12.53s, FPS: 28.72
+Elapsed time: 13.54s, FPS: 28.81
+Elapsed time: 14.53s, FPS: 28.91

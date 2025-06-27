@@ -1,0 +1,101 @@
+Starting V4L2 Camera Test with DIRECT POLLING optimization...
+Attempting to use DMA-BUF for buffer management...
+Device opened successfully: /dev/video0
+Querying device capabilities...
+Device capabilities queried successfully.
+Device: bcm2835 mmal (mmal service 16.1)
+Bus info: platform:bcm2835_v4l2-0
+Device supports video capture and streaming.
+Supported formats:
+  0: Planar YUV 4:2:0 (0x32315559) [YU12]
+  1: YUYV 4:2:2 (0x56595559) [YUYV]
+  2: 24-bit RGB 8-8-8 (0x33424752) [RGB3]
+  3: JFIF JPEG (0x4745504a) [JPEG]
+  4: H.264 (0x34363248) [H264]
+  5: Motion-JPEG (0x47504a4d) [MJPG]
+  6: YVYU 4:2:2 (0x55595659) [YVYU]
+  7: VYUY 4:2:2 (0x59555956) [VYUY]
+  8: UYVY 4:2:2 (0x59565955) [UYVY]
+  9: Y/UV 4:2:0 (0x3231564e) [NV12]
+  10: 24-bit BGR 8-8-8 (0x33524742) [BGR3]
+  11: Planar YVU 4:2:0 (0x32315659) [YV12]
+  12: Y/VU 4:2:0 (0x3132564e) [NV21]
+  13: 32-bit XBGR 8-8-8-8 (0x34325852) [RX24]
+
+Checking supported resolutions for common formats...
+  ✓ 1920x1080 supported
+  ✓ 1640x1232 supported
+  ✓ 1280x720 supported
+  ✓ 640x480 supported
+  ✓ 320x240 supported
+
+Checking hardware capabilities...
+Current allocated buffers: 0
+Driver version: 6.12.25
+
+Checking current framerate capabilities...
+Current FPS: 30
+Timeperframe: 1/30
+Attempting to set 30 FPS...
+Successfully requested 30 FPS
+Actual FPS set to: 30
+Getting current format...
+Current format: 0x47504a4d [MJPG]
+Current size: 1920x1080
+Bytes per line: 0
+Getting default format...
+
+Trying to set 1920x1080 resolution with MJPEG format...
+Successfully set to 1920x1080 with MJPEG!
+Final format: 1920x1080
+Format: 0x47504a4d [MJPG]
+Bytes per line: 0
+Attempting to initialize DMA-BUF...
+DMA-BUF: Allocated 3 buffers
+DMA-BUF initialization complete, but using MMAP for buffer mapping.
+Allocated 3 buffers
+Buffer 0 mapped: length=2088960 offset=0
+Buffer 1 mapped: length=2088960 offset=32768
+Buffer 2 mapped: length=2088960 offset=65536
+3 buffers mapped successfully.
+Using MMAP for buffer management.
+Streaming started.
+Camera streaming started. Starting FPS measurement with DIRECT POLLING (no file saving)...
+Timing: direct polling VIDIOC_DQBUF took 634 us (retries: 242).
+Frame 1 timing breakdown:
+  Capture: 984 us
+  Save: 0 us
+  Release: 30 us
+  Total: 1014 us (986.193 FPS potential)
+Timing: direct polling VIDIOC_DQBUF took 321 us (retries: 100).
+Frame 2 timing breakdown:
+  Capture: 344 us
+  Save: 0 us
+  Release: 23 us
+  Total: 368 us (2717.39 FPS potential)
+Timing: direct polling VIDIOC_DQBUF took 39 us (retries: 45).
+Frame 3 timing breakdown:
+  Capture: 105 us
+  Save: 0 us
+  Release: 24 us
+  Total: 130 us (7692.31 FPS potential)
+Timing: direct polling VIDIOC_DQBUF took 688 us (retries: 500).
+Frame 4 timing breakdown:
+  Capture: 744 us
+  Save: 0 us
+  Release: 20 us
+  Total: 765 us (1307.19 FPS potential)
+Timing: direct polling VIDIOC_DQBUF took 1140 us (retries: 860).
+Frame 5 timing breakdown:
+  Capture: 1199 us
+  Save: 0 us
+  Release: 21 us
+  Total: 1221 us (819.001 FPS potential)
+Elapsed time: 2.24s, FPS: 22.33
+Elapsed time: 3.91s, FPS: 25.59
+Elapsed time: 5.57s, FPS: 26.91
+Elapsed time: 7.24s, FPS: 27.63
+Elapsed time: 8.90s, FPS: 28.08
+Elapsed time: 10.57s, FPS: 28.38
+Elapsed time: 12.24s, FPS: 28.58
+Elapsed time: 13.91s, FPS: 28.76

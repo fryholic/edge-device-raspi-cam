@@ -1,0 +1,86 @@
+Starting V4L2 Camera Test with OpenCV Display...
+Attempting to use MMAP for buffer management...
+Device opened successfully: /dev/video0
+Querying device capabilities...
+Device capabilities queried successfully.
+Device: bcm2835 mmal (mmal service 16.1)
+Bus info: platform:bcm2835_v4l2-0
+Device supports video capture and streaming.
+WARNING: Failed to set buffer count: Invalid argument
+Supported formats:
+  0: Planar YUV 4:2:0 (0x32315559) [YU12]
+  1: YUYV 4:2:2 (0x56595559) [YUYV]
+  2: 24-bit RGB 8-8-8 (0x33424752) [RGB3]
+  3: JFIF JPEG (0x4745504a) [JPEG]
+  4: H.264 (0x34363248) [H264]
+  5: Motion-JPEG (0x47504a4d) [MJPG]
+  6: YVYU 4:2:2 (0x55595659) [YVYU]
+  7: VYUY 4:2:2 (0x59555956) [VYUY]
+  8: UYVY 4:2:2 (0x59565955) [UYVY]
+  9: Y/UV 4:2:0 (0x3231564e) [NV12]
+  10: 24-bit BGR 8-8-8 (0x33524742) [BGR3]
+  11: Planar YVU 4:2:0 (0x32315659) [YV12]
+  12: Y/VU 4:2:0 (0x3132564e) [NV21]
+  13: 32-bit XBGR 8-8-8-8 (0x34325852) [RX24]
+
+Checking supported resolutions for common formats...
+  ✓ 1920x1080 supported
+  ✓ 1640x1232 supported
+  ✓ 1280x720 supported
+  ✓ 640x480 supported
+  ✓ 320x240 supported
+
+Checking hardware capabilities...
+Current allocated buffers: 0
+Driver version: 6.12.25
+
+Checking current framerate capabilities...
+Current FPS: 30
+Timeperframe: 1/30
+Attempting to set 30 FPS...
+Successfully requested 30 FPS
+Actual FPS set to: 30
+Getting current format...
+Current format: 0x56595559 [YUYV]
+Current size: 1920x1080
+Bytes per line: 3840
+Getting default format...
+
+Trying to set 1920x1080 resolution with YUYV format...
+Successfully set to 1920x1080 with YUYV!
+Final format: 1920x1080
+Format: 0x56595559 [YUYV]
+Bytes per line: 3840
+Buffer size: 4177920 bytes
+Actual Buffer size: 4177920 bytes
+Allocated 4 MMAP buffers
+Buffer 0 mapped: length=4177920 offset=0
+Buffer 1 mapped: length=4177920 offset=32768
+Buffer 2 mapped: length=4177920 offset=65536
+Buffer 3 mapped: length=4177920 offset=98304
+4 MMAP buffers mapped successfully.
+Using MMAP for buffer management.
+
+=== FORMAT ANALYSIS ===
+Final format: 0x56595559
+✓ Using YUYV format (displayable)
+Resolution: 1920x1080
+========================
+Starting streaming with 4 buffers (MMAP mode)...
+About to call VIDIOC_STREAMON...
+Streaming started (MMAP mode)
+Camera streaming started. Starting display...
+Press 'q' to quit, 's' to save frame
+Timing: VIDIOC_DQBUF took 308 us (retries: 236).
+Timing: VIDIOC_DQBUF took 1304 us (retries: 744).
+Timing: VIDIOC_DQBUF took 225 us (retries: 198).
+Timing: VIDIOC_DQBUF took 529 us (retries: 200).
+Timing: VIDIOC_DQBUF took 914 us (retries: 500).
+Elapsed time: 3.97s, FPS: 7.56
+Elapsed time: 7.51s, FPS: 7.99
+Elapsed time: 11.02s, FPS: 8.16
+Elapsed time: 14.55s, FPS: 8.25
+Elapsed time: 18.08s, FPS: 8.30
+Elapsed time: 21.60s, FPS: 8.33
+Elapsed time: 25.12s, FPS: 8.36
+Elapsed time: 28.65s, FPS: 8.38

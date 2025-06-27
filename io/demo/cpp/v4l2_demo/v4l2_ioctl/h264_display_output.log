@@ -1,0 +1,168 @@
+Starting V4L2 Camera Test with OpenCV Display...
+Attempting to use MMAP for buffer management...
+Device opened successfully: /dev/video0
+Querying device capabilities...
+Device capabilities queried successfully.
+Device: bcm2835 mmal (mmal service 16.1)
+Bus info: platform:bcm2835_v4l2-0
+Device supports video capture and streaming.
+WARNING: Failed to set buffer count: Invalid argument
+Supported formats:
+  0: Planar YUV 4:2:0 (0x32315559) [YU12]
+  1: YUYV 4:2:2 (0x56595559) [YUYV]
+  2: 24-bit RGB 8-8-8 (0x33424752) [RGB3]
+  3: JFIF JPEG (0x4745504a) [JPEG]
+  4: H.264 (0x34363248) [H264]
+  5: Motion-JPEG (0x47504a4d) [MJPG]
+  6: YVYU 4:2:2 (0x55595659) [YVYU]
+  7: VYUY 4:2:2 (0x59555956) [VYUY]
+  8: UYVY 4:2:2 (0x59565955) [UYVY]
+  9: Y/UV 4:2:0 (0x3231564e) [NV12]
+  10: 24-bit BGR 8-8-8 (0x33524742) [BGR3]
+  11: Planar YVU 4:2:0 (0x32315659) [YV12]
+  12: Y/VU 4:2:0 (0x3132564e) [NV21]
+  13: 32-bit XBGR 8-8-8-8 (0x34325852) [RX24]
+
+Checking supported resolutions for common formats...
+  ✓ 1920x1080 supported
+  ✓ 1640x1232 supported
+  ✓ 1280x720 supported
+  ✓ 640x480 supported
+  ✓ 320x240 supported
+
+Checking hardware capabilities...
+Current allocated buffers: 0
+Driver version: 6.12.25
+
+Checking current framerate capabilities...
+Current FPS: 30
+Timeperframe: 1/30
+Attempting to set 30 FPS...
+Successfully requested 30 FPS
+Actual FPS set to: 30
+Getting current format...
+Current format: 0x56595559 [YUYV]
+Current size: 640x480
+Bytes per line: 1280
+Getting default format...
+
+Trying to set 640x480 resolution with YUYV format...
+Successfully set to 640x480 with YUYV!
+Final format: 640x480
+Format: 0x56595559 [YUYV]
+Bytes per line: 1280
+Buffer size: 614400 bytes
+Actual Buffer size: 614400 bytes
+Allocated 4 MMAP buffers
+Buffer 0 mapped: length=614400 offset=0
+Buffer 1 mapped: length=614400 offset=32768
+Buffer 2 mapped: length=614400 offset=65536
+Buffer 3 mapped: length=614400 offset=98304
+4 MMAP buffers mapped successfully.
+Using MMAP for buffer management.
+
+=== FORMAT ANALYSIS ===
+Final format: 0x56595559
+✓ Using YUYV format (displayable)
+Resolution: 640x480
+========================
+Starting streaming with 4 buffers (MMAP mode)...
+About to call VIDIOC_STREAMON...
+Streaming started (MMAP mode)
+Camera streaming started. Starting display...
+Press 'q' to quit, 's' to save frame
+Timing: VIDIOC_DQBUF took 16 us (retries: 0).
+Timing: VIDIOC_DQBUF took 10 us (retries: 0).
+Timing: VIDIOC_DQBUF took 12 us (retries: 0).
+Timing: VIDIOC_DQBUF took 14 us (retries: 0).
+Timing: VIDIOC_DQBUF took 979 us (retries: 615).
+Elapsed time: 0.89s, FPS: 33.84
+Elapsed time: 1.89s, FPS: 31.81
+Elapsed time: 2.89s, FPS: 31.18
+Elapsed time: 3.89s, FPS: 30.88
+Elapsed time: 4.89s, FPS: 30.70
+Elapsed time: 5.89s, FPS: 30.58
+Elapsed time: 6.89s, FPS: 30.50
+Elapsed time: 7.89s, FPS: 30.44
+Elapsed time: 8.89s, FPS: 30.39
+Elapsed time: 9.89s, FPS: 30.34
+Elapsed time: 10.89s, FPS: 30.32
+Elapsed time: 11.88s, FPS: 30.29
+Elapsed time: 12.88s, FPS: 30.27
+Elapsed time: 13.89s, FPS: 30.25
+Elapsed time: 14.89s, FPS: 30.23
+Elapsed time: 15.88s, FPS: 30.22
+Elapsed time: 16.88s, FPS: 30.21
+Elapsed time: 17.89s, FPS: 30.19
+Elapsed time: 18.88s, FPS: 30.19
+Elapsed time: 19.88s, FPS: 30.18
+Elapsed time: 20.88s, FPS: 30.17
+Elapsed time: 21.88s, FPS: 30.16
+Elapsed time: 22.88s, FPS: 30.15
+Elapsed time: 23.88s, FPS: 30.15
+Elapsed time: 24.88s, FPS: 30.14
+Elapsed time: 25.88s, FPS: 30.14
+Elapsed time: 26.88s, FPS: 30.13
+Elapsed time: 27.88s, FPS: 30.13
+Elapsed time: 28.88s, FPS: 30.12
+Elapsed time: 29.88s, FPS: 30.12
+Elapsed time: 30.88s, FPS: 30.12
+Elapsed time: 31.88s, FPS: 30.11
+Elapsed time: 32.88s, FPS: 30.11
+Elapsed time: 33.88s, FPS: 30.11
+Elapsed time: 34.88s, FPS: 30.10
+Elapsed time: 35.88s, FPS: 30.10
+Elapsed time: 36.88s, FPS: 30.10
+Elapsed time: 37.88s, FPS: 30.10
+Elapsed time: 38.88s, FPS: 30.09
+Elapsed time: 39.88s, FPS: 30.09
+Elapsed time: 40.88s, FPS: 30.09
+Elapsed time: 41.88s, FPS: 30.09
+Elapsed time: 42.88s, FPS: 30.08
+Elapsed time: 43.88s, FPS: 30.08
+Elapsed time: 44.88s, FPS: 30.08
+Elapsed time: 45.88s, FPS: 30.08
+Elapsed time: 46.88s, FPS: 30.08
+Elapsed time: 47.88s, FPS: 30.08
+Elapsed time: 48.88s, FPS: 30.07
+Elapsed time: 49.88s, FPS: 30.07
+Elapsed time: 50.88s, FPS: 30.07
+Elapsed time: 51.88s, FPS: 30.07
+Elapsed time: 52.88s, FPS: 30.07
+Elapsed time: 53.88s, FPS: 30.07
+Elapsed time: 54.88s, FPS: 30.07
+Elapsed time: 55.88s, FPS: 30.07
+Elapsed time: 56.88s, FPS: 30.07
+Elapsed time: 57.88s, FPS: 30.06
+Elapsed time: 58.88s, FPS: 30.06
+Elapsed time: 59.88s, FPS: 30.06
+Elapsed time: 60.88s, FPS: 30.06
+Elapsed time: 61.88s, FPS: 30.06
+Elapsed time: 62.88s, FPS: 30.06
+Elapsed time: 63.88s, FPS: 30.06
+Elapsed time: 64.88s, FPS: 30.06
+Elapsed time: 65.87s, FPS: 30.06
+Elapsed time: 66.88s, FPS: 30.05
+Elapsed time: 67.87s, FPS: 30.06
+Elapsed time: 68.87s, FPS: 30.05
+Elapsed time: 69.87s, FPS: 30.05
+Elapsed time: 70.88s, FPS: 30.05
+Elapsed time: 71.87s, FPS: 30.05
+Elapsed time: 72.87s, FPS: 30.05
+Elapsed time: 73.88s, FPS: 30.05
+Elapsed time: 74.87s, FPS: 30.05
+Elapsed time: 75.87s, FPS: 30.05
+Elapsed time: 76.87s, FPS: 30.05
+Elapsed time: 77.87s, FPS: 30.05
+Elapsed time: 78.87s, FPS: 30.05
+Elapsed time: 79.87s, FPS: 30.05
+Elapsed time: 80.87s, FPS: 30.05
+Elapsed time: 81.87s, FPS: 30.05
+Elapsed time: 82.87s, FPS: 30.05
+Elapsed time: 83.87s, FPS: 30.05
+Elapsed time: 84.87s, FPS: 30.05
+Elapsed time: 85.87s, FPS: 30.05
+Elapsed time: 86.87s, FPS: 30.04
+Elapsed time: 87.87s, FPS: 30.04
+Elapsed time: 88.87s, FPS: 30.04
+Elapsed time: 89.87s, FPS: 30.04

@@ -102,10 +102,15 @@ public:
             return false;
         }
         
-        // 스트림 설정
+        // 스트림 설정 - 1920x1080에서 30 FPS 달성을 위한 최적화
         StreamConfiguration& streamConfig = config->at(0);
+        
+        // 해상도를 1920x1080으로 설정
         streamConfig.size = Size(1920, 1080);
         streamConfig.pixelFormat = formats::YUV420;
+        
+        // 버퍼 수 증가로 처리량 향상
+        streamConfig.bufferCount = 8;
         
         // 설정 검증 및 적용
         config->validate();
@@ -214,24 +219,74 @@ public:
                   << " | FPS: " << fps
                   << " | Buffer: " << bufferIndex << std::endl;
         
-        // YUV420 데이터를 파일로 저장 (백그라운드 저장용)
+        // YUV420 데이터를 표준 형식으로 파일 저장
         if (frameCount % 10 == 0) { // 10프레임마다 저장
             try {
                 size_t actualBufferSize = bufferSizes[bufferIndex];
+                const StreamConfiguration& streamConfig = config->at(0);
+                size_t width = streamConfig.size.width;
+                size_t height = streamConfig.size.height;
                 
                 std::cout << " [Buffer size: " << actualBufferSize << " bytes]";
                 
-                // 실제 버퍼 크기 사용
+                // libcamera에서 온 데이터를 표준 YUV420P로 변환
+                size_t ySize = width * height;
+                size_t uvSize = (width / 2) * (height / 2);
+                size_t standardYuvSize = ySize + uvSize + uvSize;
+                
+                // 실제 버퍼에서 데이터 복사
                 std::vector<uint8_t> buffer_copy(actualBufferSize);
                 std::memcpy(buffer_copy.data(), data, actualBufferSize);
                 
-                // 파일로 저장
-                std::string filename = "frame_" + std::to_string(frameCount) + ".yuv420";
+                // 표준 YUV420P 형식으로 재배열
+                std::vector<uint8_t> standardYuv(standardYuvSize);
+                
+                if (actualBufferSize >= ySize) {
+                    // Y 평면 복사
+                    std::memcpy(standardYuv.data(), buffer_copy.data(), ySize);
+                    
+                    // U와 V 평면 처리 (libcamera 형식에 따라 조정 필요)
+                    if (actualBufferSize >= ySize + uvSize * 2) {
+                        // 표준 YUV420P 형식으로 가정하고 복사
+                        std::memcpy(standardYuv.data() + ySize, 
+                                   buffer_copy.data() + ySize, uvSize * 2);
+                    } else {
+                        // 부족한 UV 데이터는 0으로 채움 (그레이스케일)
+                        std::memset(standardYuv.data() + ySize, 128, uvSize * 2);
+                    }
+                } else {
+                    std::cerr << "Buffer too small for Y plane" << std::endl;
+                    return;
+                }
+                
+                // 표준 형식으로 파일 저장
+                std::string filename = "frame_" + std::to_string(frameCount) + 
+                                     "_" + std::to_string(width) + 
+                                     "x" + std::to_string(height) + 
+                                     "_yuv420p.yuv";
+                
                 std::ofstream file(filename, std::ios::binary);
                 if (file.is_open()) {
-                    file.write(reinterpret_cast<const char*>(buffer_copy.data()), actualBufferSize);
+                    file.write(reinterpret_cast<const char*>(standardYuv.data()), standardYuvSize);
                     file.close();
-                    std::cout << " [Saved: " << filename << "]";
+                    std::cout << " [Saved: " << filename << " (" << standardYuvSize << " bytes)]";
+                    
+                    // 메타데이터 파일 생성
+                    std::string metaFilename = "frame_" + std::to_string(frameCount) + "_meta.txt";
+                    std::ofstream metaFile(metaFilename);
+                    if (metaFile.is_open()) {
+                        metaFile << "Frame: " << frameCount << std::endl;
+                        metaFile << "Format: YUV420P" << std::endl;
+                        metaFile << "Width: " << width << std::endl;
+                        metaFile << "Height: " << height << std::endl;
+                        metaFile << "Original Buffer Size: " << actualBufferSize << " bytes" << std::endl;
+                        metaFile << "Standard YUV Size: " << standardYuvSize << " bytes" << std::endl;
+                        metaFile << "Y Size: " << ySize << " bytes" << std::endl;
+                        metaFile << "U Size: " << uvSize << " bytes" << std::endl;
+                        metaFile << "V Size: " << uvSize << " bytes" << std::endl;
+                        metaFile << "Stride: " << streamConfig.stride << std::endl;
+                        metaFile.close();
+                    }
                 }
             } catch (const std::exception& e) {
                 std::cerr << "Error during image processing: " << e.what() << std::endl;
@@ -277,9 +332,20 @@ public:
         camera->requestCompleted.connect(this, &DMABufZeroCopyCapture::onRequestCompleted);
         
         // 카메라 시작
-        if (camera->start()) {
-            std::cerr << "Failed to start camera" << std::endl;
-            return false;
+        ControlList controls;
+        // 30 FPS 목표로 프레임 지속시간 설정 (마이크로초 단위)
+        controls.set(controls::FrameDurationLimits, 
+                    {static_cast<int64_t>(1000000/30), static_cast<int64_t>(1000000/30)});
+        
+        if (camera->start(&controls)) {
+            std::cerr << "Failed to start camera with controls, trying without controls..." << std::endl;
+            // 컨트롤 없이 다시 시도
+            if (camera->start()) {
+                std::cerr << "Failed to start camera" << std::endl;
+                return false;
+            }
+        } else {
+            std::cout << "Camera started with 30 FPS target" << std::endl;
         }
         
         // 모든 요청을 큐에 추가

@@ -1,18 +1,25 @@
-# RGB888 변환을 위한 Makefile
+# RGB888 변환을 위한 Makefile (30fps 달성을 위한 최적화)
 
 # 컴파일러 설정
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -O2 $(shell pkg-config --cflags libcamera)
+CXXFLAGS = -std=c++17 -Wall -Wextra -O3 -march=native -mtune=native \
+           -fopenmp -ffast-math -funroll-loops \
+           $(shell pkg-config --cflags libcamera)
 
 # libcamera 및 기타 라이브러리
-LIBS = $(shell pkg-config --libs libcamera) -lpthread
+LIBS = $(shell pkg-config --libs libcamera) -lpthread -lgomp
 
 # 타겟 설정
-all: zero_copy_dma_buf_rgb888
+all: zero_copy_dma_buf_rgb888 zero_copy_fps_test
 
-# RGB888 변환 코드 빌드
+# RGB888 변환 코드 빌드 - 30fps 달성을 위한 최적화
 zero_copy_dma_buf_rgb888: zero_copy_dma_buf_rgb888.cpp
-	@echo "컴파일 명령어: $(CXX) $(CXXFLAGS) -o $@ $< $(LIBS)"
+	@echo "30fps 최적화 컴파일: $(CXX) $(CXXFLAGS) -o $@ $< $(LIBS)"
+	$(CXX) $(CXXFLAGS) -o $@ $< $(LIBS)
+
+# FPS 테스트 코드 빌드 - 파일 저장 없이 연속 캡처 성능 측정
+zero_copy_fps_test: zero_copy_fps_test.cpp
+	@echo "FPS 테스트 컴파일: $(CXX) $(CXXFLAGS) -o $@ $< $(LIBS)"
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LIBS)
 
 # 이미지 변환 스크립트
@@ -41,7 +48,7 @@ convert_rgb_to_png.sh:
 
 # 정리
 clean:
-	rm -f zero_copy_dma_buf_rgb888
+	rm -f zero_copy_dma_buf_rgb888 zero_copy_fps_test
 	rm -f frame_rgb_*.rgb frame_rgb_*.ppm frame_rgb_*.png frame_rgb_*_meta.txt
 
 .PHONY: all clean setup convert_rgb_to_png

@@ -139,6 +139,22 @@ private:
             std::cout << "Bytes per line: " << current_fmt.fmt.pix.bytesperline << std::endl;
         }
 
+        // H.264 비트레이트 설정
+        struct v4l2_control bitrate_control = {};
+        bitrate_control.id = V4L2_CID_MPEG_VIDEO_BITRATE;
+        bitrate_control.value = 1000000; // 1Mbps
+        if (ioctl(fd_, VIDIOC_S_CTRL, &bitrate_control) == -1) {
+            std::cerr << "Failed to set bitrate: " << strerror(errno) << std::endl;
+        }
+
+        // H.264 프로파일 설정
+        struct v4l2_control profile_control = {};
+        profile_control.id = V4L2_CID_MPEG_VIDEO_H264_PROFILE;
+        profile_control.value = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE;
+        if (ioctl(fd_, VIDIOC_S_CTRL, &profile_control) == -1) {
+            std::cerr << "Failed to set H.264 profile: " << strerror(errno) << std::endl;
+        }
+
         // 1920x1080 해상도와 H.264 포맷 설정 시도
         struct v4l2_format fmt = {};
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -149,13 +165,13 @@ private:
             throw std::runtime_error("Failed to get format");
         }
 
-        // 640x480 해상도와 H.264 포맷 시도
-        fmt.fmt.pix.width = 640;
-        fmt.fmt.pix.height = 480;
+        // 1920x1080 해상도와 H.264 포맷 설정
+        fmt.fmt.pix.width = 1920;
+        fmt.fmt.pix.height = 1080;
         fmt.fmt.pix.pixelformat = v4l2_fourcc('H', '2', '6', '4');
-        fmt.fmt.pix.sizeimage = 640 * 480 * 2;  // 작은 버퍼로 시작
+        fmt.fmt.pix.sizeimage = 1920 * 1080 * 2;  // 적절한 버퍼 크기 설정
 
-        std::cout << "\nTrying to set 640x480 resolution with H.264 format..." << std::endl;
+        std::cout << "\nTrying to set 1920x1080 resolution with H.264 format..." << std::endl;
 
         if (ioctl(fd_, VIDIOC_S_FMT, &fmt) == -1) {
             std::cerr << "H.264 format failed, falling back to YUYV: " << strerror(errno) << std::endl;
@@ -170,10 +186,10 @@ private:
                     throw std::runtime_error("Failed to get format after S_FMT failure");
                 }
             } else {
-                std::cout << "Successfully set to 640x480 with YUYV (fallback)!" << std::endl;
+                std::cout << "Successfully set to 1920x1080 with YUYV (fallback)!" << std::endl;
             }
         } else {
-            std::cout << "Successfully set to 640x480 with H.264!" << std::endl;
+            std::cout << "Successfully set to 1920x1080 with H.264!" << std::endl;
         }
 
         // 실제 설정된 값으로 업데이트

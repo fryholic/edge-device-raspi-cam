@@ -1,0 +1,47 @@
+# RGB888 변환을 위한 Makefile
+
+# 컴파일러 설정
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -Wextra -O2 $(shell pkg-config --cflags libcamera)
+
+# libcamera 및 기타 라이브러리
+LIBS = $(shell pkg-config --libs libcamera) -lpthread
+
+# 타겟 설정
+all: zero_copy_dma_buf_rgb888
+
+# RGB888 변환 코드 빌드
+zero_copy_dma_buf_rgb888: zero_copy_dma_buf_rgb888.cpp
+	@echo "컴파일 명령어: $(CXX) $(CXXFLAGS) -o $@ $< $(LIBS)"
+	$(CXX) $(CXXFLAGS) -o $@ $< $(LIBS)
+
+# 이미지 변환 스크립트
+convert_rgb_to_png:
+	./convert_rgb_to_png.sh
+
+# RGB를 PNG로 변환하는 스크립트 생성
+setup: convert_rgb_to_png.sh
+
+convert_rgb_to_png.sh:
+	@echo '#!/bin/bash' > $@
+	@echo '# RGB888 파일을 PNG로 변환하는 스크립트' >> $@
+	@echo 'for file in frame_rgb_*_*.rgb; do' >> $@
+	@echo '  if [ -f "$$file" ]; then' >> $@
+	@echo '    # 파일 이름에서 해상도 추출' >> $@
+	@echo '    resolution=$$(echo $$file | grep -oP "\d+x\d+" | head -1)' >> $@
+	@echo '    if [ -z "$$resolution" ]; then' >> $@
+	@echo '      echo "해상도를 찾을 수 없습니다: $$file"' >> $@
+	@echo '      continue' >> $@
+	@echo '    fi' >> $@
+	@echo '    echo "$$file ($$resolution) 변환 중..."' >> $@
+	@echo '    ffmpeg -y -f rawvideo -pixel_format rgb24 -video_size $$resolution -i "$$file" "$${file%.rgb}.png"' >> $@
+	@echo '  fi' >> $@
+	@echo 'done' >> $@
+	@chmod +x $@
+
+# 정리
+clean:
+	rm -f zero_copy_dma_buf_rgb888
+	rm -f frame_rgb_*.rgb frame_rgb_*.ppm frame_rgb_*.png frame_rgb_*_meta.txt
+
+.PHONY: all clean setup convert_rgb_to_png

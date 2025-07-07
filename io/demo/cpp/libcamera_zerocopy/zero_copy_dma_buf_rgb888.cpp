@@ -9,12 +9,30 @@
 #include <chrono>
 #include <cstring>
 #include <csignal>
+#include <array>      // std::array
 #include <sys/mman.h> // mmap, munmap
 #include <algorithm>  // min, max
+#include <iomanip>    // std::setprecision
+#include <numeric>    // std::accumulate
+#include <limits>     // std::numeric_limits
+#include <functional> // std::function
+#ifdef _OPENMP
+#include <omp.h>      // OpenMP 병렬처리
+#endif
+#ifdef __ARM_NEON
+#include <arm_neon.h> // ARM NEON SIMD 명령어
+#endif
 #include <libcamera/libcamera.h>
+#include <libcamera/framebuffer.h>
+#include <libcamera/camera.h>
+#include <libcamera/camera_manager.h>
+#include <libcamera/controls.h>
+#include <libcamera/control_ids.h>
+#include <libcamera/stream.h>
 
 using namespace libcamera;
 using namespace std::chrono;
+using namespace std::literals::chrono_literals; // 시간 리터럴 사용을 위함
 
 // 프레임 통계를 위한 구조체
 struct FrameStats {
@@ -22,6 +40,8 @@ struct FrameStats {
     high_resolution_clock::time_point captureTime;
     high_resolution_clock::time_point processTime;
     double ioTime;
+    double instantFps;  // 해당 프레임 시점의 순간 FPS
+    double avgFps;      // 해당 프레임까지의 평균 FPS
 };
 
 // 저장할 프레임 데이터 구조체
@@ -33,7 +53,8 @@ struct FrameData {
 };
 
 class DMABufZeroCopyCapture {
-private:
+private:    
+    // 카메라 및 버퍼 관련
     std::shared_ptr<Camera> camera;
     std::unique_ptr<CameraManager> cameraManager;
     std::unique_ptr<CameraConfiguration> config;
@@ -50,6 +71,11 @@ private:
     size_t frameCount;
     size_t targetFrames;
     
+    // 기능 플래그
+    bool savePPM;         // PPM 파일 저장 여부
+    bool verboseOutput;   // 상세 출력 여부
+    int saveInterval;     // 파일 저장 주기 (프레임 단위)
+    
     // 파일 저장을 위한 백그라운드 처리
     std::queue<FrameData> saveQueue;
     std::mutex saveMutex;
@@ -61,8 +87,19 @@ private:
     std::atomic<bool> stopping;
     
 public:
-    DMABufZeroCopyCapture(size_t targetFrames = 100) 
-        : frameCount(0), targetFrames(targetFrames), shouldStop(false), stopping(false) {
+    DMABufZeroCopyCapture(size_t targetFrames = 100, int saveInterval = 10, bool savePPM = false, bool verboseOutput = true) 
+        : stream(nullptr), frameCount(0), targetFrames(targetFrames), 
+          savePPM(savePPM), verboseOutput(verboseOutput), saveInterval(saveInterval),
+          shouldStop(false), stopping(false) {
+        
+#ifdef _OPENMP
+        // 30fps 달성을 위한 OpenMP 설정 - Raspberry Pi 4B의 4코어 최대 활용
+        omp_set_num_threads(4);
+        omp_set_dynamic(0);
+        if (verboseOutput) {
+            std::cout << "OpenMP 활성화: " << omp_get_max_threads() << " threads" << std::endl;
+        }
+#endif
         
         // 백그라운드 저장 스레드 시작
         saveThread = std::thread(&DMABufZeroCopyCapture::saveWorker, this);
@@ -77,7 +114,7 @@ public:
         cleanup();
     }
     
-    // 파일 저장 워커 스레드
+    // 파일 저장 워커 스레드 - 30fps 달성을 위한 최적화
     void saveWorker() {
         while (true) {
             FrameData frameData;
@@ -99,7 +136,7 @@ public:
                 }
             }
             
-            // 파일에 저장
+            // RGB 파일 저장 (바이너리)
             std::string filename = "frame_rgb_" + std::to_string(frameData.frameNumber) + 
                                 "_" + std::to_string(frameData.width) + 
                                 "x" + std::to_string(frameData.height) + 
@@ -110,8 +147,44 @@ public:
                 file.write(reinterpret_cast<const char*>(frameData.data.data()), 
                           frameData.data.size());
                 file.close();
-                std::cout << "Saved RGB data: " << filename << 
-                         " (" << frameData.data.size() << " bytes)" << std::endl;
+                
+                // 30fps 달성을 위한 최적화: 저장 완료 메시지 간소화
+                if (verboseOutput && frameData.frameNumber % (saveInterval * 5) == 0) {
+                    std::cout << "\n[SAVED] " << filename << " (" << frameData.data.size() << " bytes)";
+                }
+            }
+            
+            // PPM 파일 저장 (선택적)
+            if (savePPM) {
+                std::string ppmFilename = "frame_rgb_" + std::to_string(frameData.frameNumber) + 
+                                       "_" + std::to_string(frameData.width) + 
+                                       "x" + std::to_string(frameData.height) + 
+                                       ".ppm";
+                
+                std::ofstream ppmFile(ppmFilename, std::ios::binary);
+                if (ppmFile.is_open()) {
+                    // PPM 헤더 작성
+                    ppmFile << "P6\n" << frameData.width << " " << frameData.height << "\n255\n";
+                    // RGB 데이터 저장
+                    ppmFile.write(reinterpret_cast<const char*>(frameData.data.data()), frameData.data.size());
+                    ppmFile.close();
+                    
+                    if (verboseOutput) {
+                        std::cout << "\nSaved PPM: " << ppmFilename;
+                    }
+                }
+            }
+            
+            // 메타데이터 파일 생성 (선택적)
+            if (verboseOutput) {
+                std::string metaFilename = "frame_rgb_" + std::to_string(frameData.frameNumber) + "_meta.txt";
+                std::ofstream metaFile(metaFilename);
+                if (metaFile.is_open()) {
+                    metaFile << "Frame: " << frameData.frameNumber << std::endl;
+                    metaFile << "Format: RGB888 (BGR->RGB 변환)" << std::endl;
+                    metaFile << "Size: " << frameData.width << "x" << frameData.height << " (" << frameData.data.size() << " bytes)" << std::endl;
+                    metaFile.close();
+                }
             }
         }
     }
@@ -151,22 +224,32 @@ public:
         // 스트림 설정 - 1920x1080에서 30 FPS 달성을 위한 최적화
         StreamConfiguration& streamConfig = config->at(0);
         
-        // 해상도를 1920x1080으로 설정
+        // 성능 최적화를 위한 설정
+        // 1. 해상도를 1920x1080으로 설정 (고정)
         streamConfig.size = Size(1920, 1080);
         
-        // RGB888 포맷으로 직접 설정
+        // 2. RGB888 포맷으로 직접 설정 (BGR 순서로 저장됨)
         streamConfig.pixelFormat = libcamera::formats::RGB888;
         
-        // 이미 설정됨 - 중복 제거
+        // 3. 30fps 달성을 위한 성능 최적화 설정
+        // 4. 카메라 컨트롤 설정 - 30fps 달성을 위한 공격적인 최적화
+        ControlList cameraControls;
         
-        std::cout << "Available formats:" << std::endl;
-        // 사용 가능한 모든 포맷 출력
-        for (const auto& format : streamConfig.formats().pixelformats()) {
-            std::cout << "  - " << format.toString() << std::endl;
-        }
+        // 5. 30fps 달성을 위한 초고속 설정
+        cameraControls.set(controls::AeExposureMode, controls::ExposureNormal);
+        cameraControls.set(controls::ExposureTime, 10000);  // 10ms - 극도로 빠른 노출
         
-        // 버퍼 수 증가로 처리량 향상
-        streamConfig.bufferCount = 8;
+        // 6. 30fps 목표를 위한 프레임 지속 시간 제한 (더 공격적)
+        std::array<int64_t, 2> frameDurationLimits = {30000, 30000};  // 33.3fps 목표 (1초/30 = 30000μs)
+        cameraControls.set(controls::FrameDurationLimits, frameDurationLimits);
+        
+        // 7. 극도의 성능 최적화 설정
+        cameraControls.set(controls::AeEnable, false);      // 자동 노출 완전 비활성화
+        cameraControls.set(controls::AwbEnable, false);     // 자동 화이트 밸런스 완전 비활성화
+        cameraControls.set(controls::AfMode, controls::AfModeManual); // 자동 포커스 비활성화
+        
+        // 8. 최소 버퍼로 지연 시간 최소화
+        streamConfig.bufferCount = 3;  // 최소 버퍼로 지연 시간 최소화
         
         // 설정 검증 및 적용
         config->validate();
@@ -181,6 +264,14 @@ public:
         std::cout << "  Size: " << streamConfig.size.width << "x" << streamConfig.size.height << std::endl;
         std::cout << "  Format: " << streamConfig.pixelFormat.toString() << std::endl;
         std::cout << "  Stride: " << streamConfig.stride << std::endl;
+        
+        if (verboseOutput) {
+            std::cout << "Available formats:" << std::endl;
+            // 사용 가능한 모든 포맷 출력
+            for (const auto& format : streamConfig.formats().pixelformats()) {
+                std::cout << "  - " << format.toString() << std::endl;
+            }
+        }
         
         return setupBuffers();
     }
@@ -336,25 +427,45 @@ public:
         auto ioEndTime = high_resolution_clock::now();
         double ioTime = duration_cast<microseconds>(ioEndTime - ioStartTime).count() / 1000.0;
         
+        // FPS 계산 - 더 정확한 측정을 위해 1초마다 초기화
+        double fps = 0;
+        double instantFps = 0;
+        static auto lastFpsUpdateTime = high_resolution_clock::now();
+        static int framesSinceLastUpdate = 0;
+        
+        if (frameCount > 0) {
+            // 전체 세션에 대한 평균 FPS
+            auto totalElapsed = duration_cast<microseconds>(ioEndTime - startTime);
+            fps = (frameCount + 1) * 1000000.0 / totalElapsed.count();
+            
+            // 최근 1초 동안의 순간 FPS
+            framesSinceLastUpdate++;
+            auto timeSinceLastUpdate = duration_cast<milliseconds>(ioEndTime - lastFpsUpdateTime);
+            
+            if (timeSinceLastUpdate.count() >= 1000) {  // 1초마다 업데이트
+                instantFps = framesSinceLastUpdate * 1000.0 / timeSinceLastUpdate.count();
+                lastFpsUpdateTime = ioEndTime;
+                framesSinceLastUpdate = 0;
+            }
+        }
+        
         // 프레임 통계 기록
         FrameStats stats;
         stats.frameIndex = frameCount;
         stats.captureTime = ioStartTime;
         stats.processTime = ioEndTime;
         stats.ioTime = ioTime;
+        stats.instantFps = instantFps;
+        stats.avgFps = fps;
         frameStats.push_back(stats);
         
-        // FPS 계산
-        double fps = 0;
-        if (frameCount > 0) {
-            auto elapsed = duration_cast<microseconds>(ioEndTime - startTime);
-            fps = (frameCount + 1) * 1000000.0 / elapsed.count();
+        // 30fps 달성을 위한 최적화: 출력 빈도 줄이기 (매 30프레임마다만 출력)
+        if (frameCount % 30 == 0 || frameCount < 10) {
+            std::cout << "\n■ Frame: " << frameCount 
+                      << " | Avg FPS: " << std::fixed << std::setprecision(1) << stats.avgFps
+                      << " | Instant FPS: " << std::fixed << std::setprecision(1) << stats.instantFps
+                      << " | I/O: " << std::fixed << std::setprecision(1) << ioTime << "ms";
         }
-        
-        std::cout << "Frame " << frameCount 
-                  << " | I/O Time: " << ioTime << "ms"
-                  << " | FPS: " << fps
-                  << " | Buffer: " << bufferIndex << std::endl;
         
         // RGB888 데이터를 직접 저장
         try {
@@ -363,12 +474,13 @@ public:
             int width = streamConfig.size.width;
             int height = streamConfig.size.height;
             int stride = streamConfig.stride;
-            
-            std::cout << " [Format: " << streamConfig.pixelFormat.toString() 
-                      << ", Size: " << width << "x" << height 
-                      << ", Stride: " << stride << "]";
-            
-            std::cout << " [Planes: " << planeMappings.size() << "]";
+            // 30fps 달성을 위한 최적화: 상세 출력은 처음 몇 프레임만
+            if (frameCount < 3) {
+                std::cout << "\n  - Format: " << streamConfig.pixelFormat.toString() 
+                          << " | Resolution: " << width << "x" << height 
+                          << " | Stride: " << stride
+                          << " | Planes: " << planeMappings.size();
+            }
             
             bool dataExtracted = false;
             std::vector<uint8_t> rgbData;
@@ -379,7 +491,9 @@ public:
                 uint8_t* srcRGB = static_cast<uint8_t*>(planeMappings[0]);
                 size_t dataSize = planeSizes[0];
                 
-                std::cout << " [RGB Data Size: " << dataSize << " bytes]";
+                if (frameCount < 3) {
+                    std::cout << " | Data Size: " << dataSize << " bytes";
+                }
                 
                 // RGB888은 픽셀당 3바이트
                 rgbSize = width * height * 3;
@@ -397,126 +511,47 @@ public:
                     effectiveStride *= bytesPerPixel;
                 }
                 
-                std::cout << " [RGB Byte Stride: " << effectiveStride << "]";
-                
-                // 줄별로 복사 (필요시 BGR -> RGB 변환)
-                for (int y = 0; y < height; ++y) {
-                    size_t srcOffset = y * effectiveStride;
-                    size_t dstOffset = y * width * bytesPerPixel;
-                    size_t lineSizeBytes = width * bytesPerPixel;
-                    
-                    // 범위를 벗어나지 않는지 확인
-                    if (srcOffset + lineSizeBytes <= dataSize) {
-                        // BGR -> RGB 순서로 변환하며 복사
-                        for (int x = 0; x < width; ++x) {
-                            size_t srcPixelOffset = srcOffset + x * bytesPerPixel;
-                            size_t dstPixelOffset = dstOffset + x * bytesPerPixel;
-                            
-                            // libcamera의 "RGB888" 포맷은 실제로는 BGR 순서일 가능성이 높음
-                            // BGR -> RGB 순서로 변환
-                            rgbData[dstPixelOffset] = srcRGB[srcPixelOffset + 2];     // R <- B
-                            rgbData[dstPixelOffset + 1] = srcRGB[srcPixelOffset + 1]; // G <- G
-                            rgbData[dstPixelOffset + 2] = srcRGB[srcPixelOffset];     // B <- R
-                        }
-                    } else if (srcOffset < dataSize) {
-                        // 일부만 복사 가능한 경우
-                        int pixelsToProcess = (dataSize - srcOffset) / bytesPerPixel;
-                        for (int x = 0; x < pixelsToProcess; ++x) {
-                            size_t srcPixelOffset = srcOffset + x * bytesPerPixel;
-                            size_t dstPixelOffset = dstOffset + x * bytesPerPixel;
-                            
-                            // BGR -> RGB 순서로 변환
-                            rgbData[dstPixelOffset] = srcRGB[srcPixelOffset + 2];     // R <- B
-                            rgbData[dstPixelOffset + 1] = srcRGB[srcPixelOffset + 1]; // G <- G
-                            rgbData[dstPixelOffset + 2] = srcRGB[srcPixelOffset];     // B <- R
-                        }
-                        // 나머지는 0으로 채움
-                        size_t processedBytes = pixelsToProcess * bytesPerPixel;
-                        std::memset(rgbData.data() + dstOffset + processedBytes, 0, lineSizeBytes - processedBytes);
-                    } else {
-                        // 데이터 범위를 벗어난 경우 0으로 채움
-                        std::memset(rgbData.data() + dstOffset, 0, lineSizeBytes);
-                    }
+                if (frameCount < 3) {
+                    std::cout << " | Byte Stride: " << effectiveStride;
                 }
                 
-                // 첫 프레임의 RGB 데이터 샘플 출력 (채널 순서 확인용)
+                // 30fps 달성을 위한 초고속 BGR->RGB 변환
+                // OpenMP + NEON SIMD 활용한 병렬 처리
+                convertBGRtoRGB_Parallel(srcRGB, rgbData.data(), width, height, effectiveStride);
+                
+                // 30fps 달성을 위한 최적화: RGB 샘플 출력은 첫 프레임만
                 if (frameCount == 0) {
-                    std::cout << "\nRGB Data Sample - First 10 pixels (원본 순서로 출력):";
-                    for (int i = 0; i < 10; i++) {
-                        int index = i * 3;
-                        std::cout << "\nPixel " << i << ": ("
-                                  << (int)rgbData[index] << ","
-                                  << (int)rgbData[index+1] << ","
-                                  << (int)rgbData[index+2] << ")";
-                    }
-                    std::cout << std::endl;
-                    
-                    // RGB 조합으로 이미지가 파란색으로 보인다면, 채널 순서가 BGR일 가능성이 높음
-                    // 첫 픽셀에 대해 가능한 모든 채널 조합을 출력해봄
-                    std::cout << "\n첫 번째 픽셀의 가능한 채널 조합:";
-                    std::cout << "\nRGB 순서: (" 
-                              << (int)rgbData[0] << "," 
-                              << (int)rgbData[1] << "," 
-                              << (int)rgbData[2] << ")";
-                    std::cout << "\nBGR 순서: (" 
-                              << (int)rgbData[2] << "," 
-                              << (int)rgbData[1] << "," 
-                              << (int)rgbData[0] << ")";
-                    std::cout << std::endl;
+                    std::cout << "\n\n  ■ RGB Sample (First 3 pixels): ("
+                              << (int)rgbData[0] << "," << (int)rgbData[1] << "," << (int)rgbData[2] << ") "
+                              << "(" << (int)rgbData[3] << "," << (int)rgbData[4] << "," << (int)rgbData[5] << ") "
+                              << "(" << (int)rgbData[6] << "," << (int)rgbData[7] << "," << (int)rgbData[8] << ")";
                 }
                 
                 dataExtracted = true;
             }
             
-            // RGB 데이터를 파일로 저장
-            if (dataExtracted) {
-                std::string filename = "frame_rgb_" + std::to_string(frameCount) + 
-                                     "_" + std::to_string(width) + 
-                                     "x" + std::to_string(height) + 
-                                     ".rgb";
+            // RGB 데이터를 파일로 저장 - saveInterval 프레임당 1회만 저장
+            if (dataExtracted && frameCount % saveInterval == 0) {
+                // 성능 최적화: 기존 백그라운드 저장 시스템 사용
+                FrameData frameData;
+                frameData.data = std::move(rgbData);  // move semantics로 복사 비용 절약
+                frameData.width = width;
+                frameData.height = height;
+                frameData.frameNumber = frameCount;
                 
-                // 동기적으로 파일에 저장
-                std::ofstream file(filename, std::ios::binary);
-                if (file.is_open()) {
-                    file.write(reinterpret_cast<const char*>(rgbData.data()), rgbSize);
-                    file.close();
-                    std::cout << " [Saved RGB: " << filename << " (" << rgbSize << " bytes)]";
-                    
-                    // PNG로 변환을 위한 메타데이터 파일 생성
-                    std::string metaFilename = "frame_rgb_" + std::to_string(frameCount) + "_meta.txt";
-                    std::ofstream metaFile(metaFilename);
-                    if (metaFile.is_open()) {
-                        metaFile << "Frame: " << frameCount << std::endl;
-                        metaFile << "Format: RGB888 (BGR->RGB 변환)" << std::endl;
-                        metaFile << "Width: " << width << std::endl;
-                        metaFile << "Height: " << height << std::endl;
-                        metaFile << "RGB Size: " << rgbSize << " bytes" << std::endl;
-                        metaFile << "Bytes per pixel: 3" << std::endl;
-                        metaFile << "Channel order: R,G,B (카메라에서는 B,G,R로 제공됨)" << std::endl;
-                        metaFile << "Data source: Camera BGR888 output converted to RGB888" << std::endl;
-                        metaFile.close();
-                    }
+                {
+                    std::lock_guard<std::mutex> lock(saveMutex);
+                    saveQueue.push(std::move(frameData));
                 }
+                saveCondition.notify_one();
                 
-                // PPM 파일로도 저장 (이미지 뷰어에서 바로 확인 가능)
-                if (frameCount % 10 == 0) {  // 10프레임마다 PPM 파일 생성
-                    std::string ppmFilename = "frame_rgb_" + std::to_string(frameCount) + 
-                                           "_" + std::to_string(width) + 
-                                           "x" + std::to_string(height) + 
-                                           ".ppm";
-                    
-                    std::ofstream ppmFile(ppmFilename, std::ios::binary);
-                    if (ppmFile.is_open()) {
-                        // PPM 헤더 작성
-                        ppmFile << "P6\n" << width << " " << height << "\n255\n";
-                        // RGB 데이터 저장
-                        ppmFile.write(reinterpret_cast<const char*>(rgbData.data()), rgbSize);
-                        ppmFile.close();
-                        std::cout << " [Saved PPM: " << ppmFilename << "]";
-                    }
+                // 30fps 달성을 위한 최적화: 저장 메시지도 간소화
+                if (frameCount % saveInterval == 0) {
+                    std::cout << " [SAVE]";
                 }
             }
             
+            dataExtracted = true;
         } catch (const std::exception& e) {
             std::cerr << "Error during RGB conversion: " << e.what() << std::endl;
         }
@@ -541,70 +576,305 @@ public:
             return;
         }
         
+        // 기본 통계 계산
         double totalIoTime = 0;
+        double maxIoTime = 0;
+        double minIoTime = std::numeric_limits<double>::max();
+        double maxFps = 0;
+        double minFps = std::numeric_limits<double>::max();
+        
+        // 30fps 달성 여부 통계
+        int framesAbove30Fps = 0;
+        int frameCount = static_cast<int>(frameStats.size());
+        
+        // 시간별 FPS 분포 (프레임 시작 후 시간대별)
+        std::vector<double> fpsBySecond;
+        std::vector<int> framesBySecond;
+        int currentSecond = 0;
+        int framesThisSecond = 0;
+        auto firstFrameTime = frameStats.front().captureTime;
+        
         for (const auto& stats : frameStats) {
+            // I/O 시간 통계
             totalIoTime += stats.ioTime;
+            maxIoTime = std::max(maxIoTime, stats.ioTime);
+            minIoTime = std::min(minIoTime, stats.ioTime);
+            
+            // FPS 통계
+            if (stats.avgFps > 0) {
+                maxFps = std::max(maxFps, stats.avgFps);
+                minFps = std::min(minFps, stats.avgFps);
+                
+                if (stats.avgFps >= 29.5) { // 30fps에 근접하는 경우를 허용
+                    framesAbove30Fps++;
+                }
+            }
+            
+            // 초당 프레임 수 계산
+            auto timeSinceStart = duration_cast<seconds>(stats.captureTime - firstFrameTime).count();
+            if (static_cast<int>(timeSinceStart) > currentSecond) {
+                while (currentSecond < static_cast<int>(timeSinceStart)) {
+                    fpsBySecond.push_back(framesThisSecond);
+                    framesBySecond.push_back(framesThisSecond);
+                    framesThisSecond = 0;
+                    currentSecond++;
+                }
+            }
+            framesThisSecond++;
+        }
+        
+        // 마지막 초에 대한 처리
+        if (framesThisSecond > 0) {
+            fpsBySecond.push_back(framesThisSecond);
+            framesBySecond.push_back(framesThisSecond);
         }
         
         double avgIoTime = totalIoTime / frameStats.size();
         auto totalTime = duration_cast<milliseconds>(
             frameStats.back().processTime - startTime).count();
         double avgFps = frameStats.size() * 1000.0 / totalTime;
+        double percent30Fps = (frameCount > 0) ? (framesAbove30Fps * 100.0 / frameCount) : 0;
         
-        std::cout << "\nCapture Statistics:" << std::endl;
-        std::cout << "Total frames: " << frameStats.size() << std::endl;
-        std::cout << "Average FPS: " << avgFps << std::endl;
-        std::cout << "Average I/O time: " << avgIoTime << " ms" << std::endl;
-        std::cout << "Total time: " << totalTime / 1000.0 << " seconds" << std::endl;
+        // 통계 정보 출력
+        std::cout << "\n===== 캡처 성능 통계 =====" << std::endl;
+        std::cout << "총 프레임 수: " << frameCount << " 프레임" << std::endl;
+        std::cout << "총 실행 시간: " << std::fixed << std::setprecision(2) << totalTime / 1000.0 << " 초" << std::endl;
+        std::cout << "평균 FPS: " << avgFps << std::endl;
+        std::cout << "최소 FPS: " << minFps << std::endl;
+        std::cout << "최대 FPS: " << maxFps << std::endl;
+        std::cout << "30FPS 이상 달성 비율: " << percent30Fps << "% (" << framesAbove30Fps << "/" << frameCount << ")" << std::endl;
+        std::cout << "\n=== I/O 처리 시간 통계 ===" << std::endl;
+        std::cout << "평균 I/O 시간: " << avgIoTime << " ms" << std::endl;
+        std::cout << "최소 I/O 시간: " << minIoTime << " ms" << std::endl;
+        std::cout << "최대 I/O 시간: " << maxIoTime << " ms" << std::endl;
+        
+        // 초당 프레임 수 출력 (시간대별 분석)
+        std::cout << "\n=== 시간별 프레임 분포 ===" << std::endl;
+        for (size_t i = 0; i < fpsBySecond.size(); i++) {
+            std::cout << i+1 << "초: " << framesBySecond[i] << " 프레임";
+            
+            // 30fps 달성 여부 표시
+            if (framesBySecond[i] >= 30) {
+                std::cout << " ✓";
+            } else if (framesBySecond[i] >= 25) {
+                std::cout << " △";
+            } else {
+                std::cout << " ✗";
+            }
+            
+            std::cout << std::endl;
+        }
+        
+        // 파일 저장 정보
+        std::cout << "\n=== 파일 저장 정보 ===" << std::endl;
+        std::cout << "저장 주기: " << saveInterval << " 프레임당 1회" << std::endl;
+        std::cout << "저장된 파일 수: " << (frameCount / saveInterval) << " 파일" << std::endl;
     }
+    
+    // 30fps 달성을 위한 최적화된 BGR->RGB 변환 함수들
+private:
+    
+#ifdef __ARM_NEON
+    // ARM NEON SIMD를 활용한 BGR->RGB 변환 (8픽셀 단위 처리)
+    inline void convertBGRtoRGB_NEON(const uint8_t* src, uint8_t* dst, int width) {
+        const int simd_width = 8; // NEON은 128bit이므로 8픽셀(24바이트) 처리 가능
+        int x = 0;
+        
+        for (x = 0; x <= width - simd_width; x += simd_width) {
+            // 24바이트(8픽셀 * 3채널) 로드
+            uint8x8x3_t bgr = vld3_u8(src + x * 3);
+            
+            // BGR -> RGB 변환 (채널 순서만 바꿈)
+            uint8x8x3_t rgb;
+            rgb.val[0] = bgr.val[2]; // R = B
+            rgb.val[1] = bgr.val[1]; // G = G
+            rgb.val[2] = bgr.val[0]; // B = R
+            
+            // 결과 저장
+            vst3_u8(dst + x * 3, rgb);
+        }
+        
+        // 남은 픽셀 처리 (SIMD로 처리하지 못한 부분)
+        for (; x < width; x++) {
+            dst[x * 3]     = src[x * 3 + 2]; // R
+            dst[x * 3 + 1] = src[x * 3 + 1]; // G
+            dst[x * 3 + 2] = src[x * 3];     // B
+        }
+    }
+#endif
+    
+    // OpenMP를 활용한 병렬 BGR->RGB 변환
+    void convertBGRtoRGB_Parallel(const uint8_t* src, uint8_t* dst, 
+                                  int width, int height, size_t srcStride) {
+        const size_t dstStride = width * 3;
+        
+#ifdef _OPENMP
+        // OpenMP 병렬처리 - Raspberry Pi 4B의 4코어 활용
+        #pragma omp parallel for schedule(dynamic, 32)
+#endif
+        for (int y = 0; y < height; y++) {
+            const uint8_t* srcRow = src + y * srcStride;
+            uint8_t* dstRow = dst + y * dstStride;
+            
+#ifdef __ARM_NEON
+            // NEON SIMD 사용 가능한 경우
+            convertBGRtoRGB_NEON(srcRow, dstRow, width);
+#else
+            // 일반적인 최적화된 변환 (8픽셀 단위 언롤링)
+            int x = 0;
+            for (; x <= width - 8; x += 8) {
+                // 8픽셀 언롤링으로 처리
+                for (int i = 0; i < 8; i++) {
+                    const int srcIdx = (x + i) * 3;
+                    const int dstIdx = (x + i) * 3;
+                    dstRow[dstIdx]     = srcRow[srcIdx + 2]; // R
+                    dstRow[dstIdx + 1] = srcRow[srcIdx + 1]; // G
+                    dstRow[dstIdx + 2] = srcRow[srcIdx];     // B
+                }
+            }
+            
+            // 남은 픽셀 처리
+            for (; x < width; x++) {
+                const int srcIdx = x * 3;
+                const int dstIdx = x * 3;
+                dstRow[dstIdx]     = srcRow[srcIdx + 2]; // R
+                dstRow[dstIdx + 1] = srcRow[srcIdx + 1]; // G
+                dstRow[dstIdx + 2] = srcRow[srcIdx];     // B
+            }
+#endif
+        }
+    }
+    
+    // memcpy 기반 고속 변환 (BGR->RGB 변환 없이 raw 데이터만 복사)
+    void copyRawData_Fast(const uint8_t* src, uint8_t* dst, 
+                         int width, int height, size_t srcStride) {
+        const size_t dstStride = width * 3;
+        
+        if (srcStride == dstStride) {
+            // stride가 같으면 한번에 복사
+            std::memcpy(dst, src, height * dstStride);
+        } else {
+            // 줄별로 복사
+#ifdef _OPENMP
+            #pragma omp parallel for
+#endif
+            for (int y = 0; y < height; y++) {
+                std::memcpy(dst + y * dstStride, src + y * srcStride, dstStride);
+            }
+        }
+    }
+
+public:
 };
 
+// 시그널 핸들러
+static std::atomic<bool> shouldExit{false};
+static DMABufZeroCopyCapture* captureInstance = nullptr;
+
+void signalHandler(int signal) {
+    std::cout << "\n신호 수신: " << signal << ". 종료 중..." << std::endl;
+    shouldExit.store(true);
+    if (captureInstance) {
+        captureInstance->stop();
+    }
+}
+
 int main(int argc, char** argv) {
-    size_t numFrames = 100; // 기본값
+    // 기본 설정
+    size_t numFrames = 100;     // 기본값 - 30fps 측정을 위한 적정 수치
+    int saveInterval = 10;      // 파일 저장 주기 (프레임 단위)
+    bool savePPM = false;       // PPM 파일 저장 여부
+    bool verboseOutput = true;  // 상세 출력 활성화 여부
     
-    // 명령행 인수가 있으면 프레임 수 조정
-    if (argc > 1) {
-        numFrames = std::stoul(argv[1]);
-    }
-    
-    std::cout << "Starting DMA-BUF zero-copy capture with direct RGB888 format..." << std::endl;
-    std::cout << "Target frames: " << numFrames << std::endl;
-    
-    DMABufZeroCopyCapture capture(numFrames);
-    
-    if (!capture.initialize()) {
-        std::cerr << "Failed to initialize capture" << std::endl;
-        return 1;
-    }
-    
-    if (!capture.start()) {
-        std::cerr << "Failed to start capture" << std::endl;
-        return 1;
-    }
-    
-    // 메인 스레드는 대기 - 이벤트 기반 처리
-    std::cout << "Capturing... Press Ctrl+C to stop." << std::endl;
-    
-    // 사용자가 Ctrl+C를 누를 때까지 대기
-    try {
-        // 간단한 시그널 처리
-        signal(SIGINT, [](int) { /* 무시 */ });
+    // 명령행 인수 처리
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
         
-        // 모든 프레임이 처리될 때까지 대기
-        while (true) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (arg == "--frames" || arg == "-f") {
+            if (i + 1 < argc) {
+                numFrames = std::stoul(argv[++i]);
+            }
+        } else if (arg == "--save-interval" || arg == "-s") {
+            if (i + 1 < argc) {
+                saveInterval = std::stoi(argv[++i]);
+            }
+        } else if (arg == "--ppm") {
+            savePPM = true;
+        } else if (arg == "--quiet" || arg == "-q") {
+            verboseOutput = false;
+        } else if (arg == "--help" || arg == "-h") {
+            std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
+            std::cout << "Options:" << std::endl;
+            std::cout << "  --frames <n>, -f <n>     캡처할 프레임 수 (기본값: " << numFrames << ")" << std::endl;
+            std::cout << "  --save-interval <n>, -s <n>  파일 저장 주기 (기본값: " << saveInterval << ")" << std::endl;
+            std::cout << "  --ppm                    PPM 파일도 저장" << std::endl;
+            std::cout << "  --quiet, -q              상세 출력 비활성화" << std::endl;
+            std::cout << "  --help, -h               이 도움말 출력" << std::endl;
+            return 0;
         }
-    } catch (...) {
-        // 예외 발생 시 정리
     }
     
-    // 종료 및 통계 출력
-    capture.printStats();
+    // 시그널 핸들러 등록
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
     
-    std::cout << "RGB 파일을 PNG로 변환하려면 다음 명령을 사용하세요:" << std::endl;
-    std::cout << "for file in frame_rgb_*_1920x1080.rgb; do" << std::endl;
-    std::cout << "  ffmpeg -f rawvideo -pixel_format rgb24 -video_size 1920x1080 -i \"$file\" \"${file%.rgb}.png\"" << std::endl;
-    std::cout << "done" << std::endl;
+    std::cout << "=========================================================" << std::endl;
+    std::cout << "RGB888 DMA-BUF zero-copy 성능 측정 (30fps 달성 여부 테스트)" << std::endl;
+    std::cout << "=========================================================" << std::endl;
+    std::cout << "- 설정: 1920x1080 RGB888 포맷, BGR->RGB 변환 적용" << std::endl;
+    std::cout << "- 저장 주기: " << saveInterval << " 프레임당 1회 저장" << std::endl;
+    std::cout << "- 목표: 30fps 달성 및 안정적인 프레임 레이트 유지" << std::endl;
+    std::cout << "- 캡처 프레임 수: " << numFrames << std::endl;
+    std::cout << "- 예상 저장 파일 수: " << (numFrames / saveInterval) << std::endl;
+    std::cout << "=========================================================" << std::endl;
+    std::cout << "30fps 달성을 위한 최적화 적용:" << std::endl;
+#ifdef _OPENMP
+    std::cout << "✓ OpenMP 병렬처리 활성화 (4 threads)" << std::endl;
+#else
+    std::cout << "✗ OpenMP 병렬처리 비활성화" << std::endl;
+#endif
+#ifdef __ARM_NEON
+    std::cout << "✓ ARM NEON SIMD 최적화 활성화" << std::endl;
+#else
+    std::cout << "✗ ARM NEON SIMD 최적화 비활성화" << std::endl;
+#endif
+    std::cout << "✓ -O3 최적화, 루프 언롤링, 네이티브 아키텍처 최적화" << std::endl;
+    std::cout << "✓ 최소 버퍼 수, 자동 기능 비활성화, 빠른 노출 설정" << std::endl;
+    std::cout << "=========================================================" << std::endl;
+    
+    try {
+        DMABufZeroCopyCapture capture(numFrames, saveInterval, savePPM, verboseOutput);
+        captureInstance = &capture;
+        
+        if (!capture.initialize()) {
+            std::cerr << "카메라 초기화 실패" << std::endl;
+            return -1;
+        }
+        
+        if (!capture.start()) {
+            std::cerr << "캡처 시작 실패" << std::endl;
+            return -1;
+        }
+        
+        std::cout << "캡처 시작... Ctrl+C로 중단 가능" << std::endl;
+        
+        // 캡처 완료까지 대기
+        while (!shouldExit.load()) {
+            std::this_thread::sleep_for(100ms);
+        }
+        
+        capture.stop();
+        
+        std::cout << "\n=========================================================" << std::endl;
+        std::cout << "캡처 완료! 통계 분석 중..." << std::endl;
+        std::cout << "=========================================================" << std::endl;
+        
+        capture.printStats();
+        
+    } catch (const std::exception& e) {
+        std::cerr << "오류 발생: " << e.what() << std::endl;
+        return -1;
+    }
     
     return 0;
 }

@@ -30,6 +30,12 @@
 #include <libcamera/control_ids.h>
 #include <libcamera/stream.h>
 
+// OpenCV 헤더 추가
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/core/ocl.hpp>
+
 using namespace libcamera;
 using namespace std::chrono;
 using namespace std::literals::chrono_literals; // 시간 리터럴 사용을 위함
@@ -40,11 +46,12 @@ struct FrameStats {
     high_resolution_clock::time_point captureTime;
     high_resolution_clock::time_point processTime;
     double ioTime;
+    double processOpenCVTime;  // OpenCV 처리 시간 추가
     double instantFps;  // 해당 프레임 시점의 순간 FPS
     double avgFps;      // 해당 프레임까지의 평균 FPS
 };
 
-class DMABufZeroCopyFPSTest {
+class DMABufOpenCVDemo {
 private:    
     // 카메라 및 버퍼 관련
     std::shared_ptr<Camera> camera;
@@ -67,25 +74,54 @@ private:
     
     // 기능 플래그
     bool verboseOutput;   // 상세 출력 여부
+    bool enableOpenCV;    // OpenCV 처리 활성화 여부
+    bool saveFrames;      // 프레임 저장 여부
     
     // 종료 플래그
     std::atomic<bool> stopping;
     
 public:
-    DMABufZeroCopyFPSTest(bool verboseOutput = true) 
-        : stream(nullptr), frameCount(0), verboseOutput(verboseOutput), stopping(false) {
+    DMABufOpenCVDemo(bool verboseOutput = true, bool enableOpenCV = true, bool saveFrames = false) 
+        : stream(nullptr), frameCount(0), verboseOutput(verboseOutput), 
+          enableOpenCV(enableOpenCV), saveFrames(saveFrames), stopping(false) {
         
 #ifdef _OPENMP
-        // 30fps 달성을 위한 OpenMP 설정 - Raspberry Pi 4B의 4코어 최대 활용
+        // OpenMP 설정 - Raspberry Pi 4B의 4코어 최대 활용
         omp_set_num_threads(4);
         omp_set_dynamic(0);
         if (verboseOutput) {
             std::cout << "OpenMP 활성화: " << omp_get_max_threads() << " threads" << std::endl;
         }
 #endif
+
+#ifdef __ARM_NEON
+        if (verboseOutput) {
+            std::cout << "ARM NEON SIMD 최적화 활성화" << std::endl;
+        }
+#endif
+
+        // OpenCV 하드웨어 최적화 설정
+        if (enableOpenCV) {
+            cv::setUseOptimized(true);  // OpenCV 내장 최적화 활성화
+            cv::setNumThreads(4);       // 멀티스레드 활성화
+            
+            if (verboseOutput) {
+                std::cout << "OpenCV 최적화 설정:" << std::endl;
+                std::cout << "  - 하드웨어 최적화: " << (cv::useOptimized() ? "활성화" : "비활성화") << std::endl;
+                std::cout << "  - 스레드 수: " << cv::getNumThreads() << std::endl;
+                
+                // OpenCL 지원 확인
+                if (cv::ocl::haveOpenCL()) {
+                    std::cout << "  - OpenCL 지원: 활성화" << std::endl;
+                    cv::ocl::setUseOpenCL(true);
+                } else {
+                    std::cout << "  - OpenCL 지원: 비활성화" << std::endl;
+                }
+            }
+        }
     }
     
-    ~DMABufZeroCopyFPSTest() {
+    ~DMABufOpenCVDemo() {
         cleanup();
     }
     
@@ -121,7 +157,7 @@ public:
             return false;
         }
         
-        // 스트림 설정 - 1920x1080에서 30 FPS 달성을 위한 최적화
+        // 스트림 설정 - 기존 FPS 테스트와 동일한 설정
         StreamConfiguration& streamConfig = config->at(0);
         
         // 성능 최적화를 위한 설정
@@ -164,14 +200,6 @@ public:
         std::cout << "  Format: " << streamConfig.pixelFormat.toString() << std::endl;
         std::cout << "  Stride: " << streamConfig.stride << std::endl;
         
-        if (verboseOutput) {
-            std::cout << "Available formats:" << std::endl;
-            // 사용 가능한 모든 포맷 출력
-            for (const auto& format : streamConfig.formats().pixelformats()) {
-                std::cout << "  - " << format.toString() << std::endl;
-            }
-        }
-        
         return setupBuffers();
     }
     
@@ -211,7 +239,6 @@ public:
                 planeSizes.push_back(plane.length);
             }
             
-            // 각 버퍼의 모든 평면을 저장
             bufferPlaneMappings.push_back(planeMappings);
             bufferPlaneSizes.push_back(planeSizes);
         }
@@ -247,7 +274,7 @@ public:
         }
         
         // 요청 완료 시그널 연결
-        camera->requestCompleted.connect(this, &DMABufZeroCopyFPSTest::onRequestCompleted);
+        camera->requestCompleted.connect(this, &DMABufOpenCVDemo::onRequestCompleted);
         
         // 요청 큐 준비
         std::vector<std::unique_ptr<Request>> requests;
@@ -266,7 +293,7 @@ public:
             requests.push_back(std::move(request));
         }
         
-        // 카메라 시작 (컨트롤 적용)
+        // 카메라 시작
         if (camera->start(&cameraControls)) {
             std::cerr << "Failed to start camera" << std::endl;
             return false;
@@ -288,8 +315,73 @@ public:
         
         if (camera) {
             camera->stop();
-            camera->requestCompleted.disconnect(this, &DMABufZeroCopyFPSTest::onRequestCompleted);
+            camera->requestCompleted.disconnect(this, &DMABufOpenCVDemo::onRequestCompleted);
         }
+    }
+    
+    // NEON 최적화된 OpenCV 이미지 처리 함수
+    cv::Mat processWithOpenCV(const cv::Mat& inputImage) {
+        auto processStart = high_resolution_clock::now();
+        
+        cv::Mat processedImage;
+        
+        // NEON과 하드웨어 가속 최적화된 OpenCV 처리
+        try {
+#ifdef __ARM_NEON
+            // NEON이 활성화된 경우 더 적극적인 최적화
+            cv::setUseOptimized(true);  // OpenCV 내장 최적화 활성화
+            cv::setNumThreads(4);       // 4코어 활용
+#endif
+
+            // 1. 하드웨어 가속을 위한 작은 크기 처리 (GPU/ISP 친화적)
+            cv::Mat smallImage;
+            cv::resize(inputImage, smallImage, cv::Size(960, 540), 0, 0, cv::INTER_LINEAR);
+            
+            // 2. NEON 최적화된 간단한 블러 (작은 커널)
+            cv::Mat blurred;
+            cv::GaussianBlur(smallImage, blurred, cv::Size(5, 5), 0);
+            
+            // 3. 엣지 검출 (더 작은 크기에서)
+            cv::Mat smallGray, smallEdges;
+            cv::cvtColor(blurred, smallGray, cv::COLOR_RGB2GRAY);
+            cv::Canny(smallGray, smallEdges, 30, 90);  // 임계값 낮춤
+            
+            // 4. 엣지를 원본 크기로 복원 (하드웨어 가속)
+            cv::Mat edges;
+            cv::resize(smallEdges, edges, inputImage.size(), 0, 0, cv::INTER_NEAREST);
+            
+            // 5. 컬러로 변환 (NEON 최적화)
+            cv::Mat edgesColor;
+            cv::cvtColor(edges, edgesColor, cv::COLOR_GRAY2RGB);
+            
+            // 6. 가중 합성 (NEON 최적화)
+            cv::addWeighted(inputImage, 0.85, edgesColor, 0.15, 0, processedImage);
+            
+            // 7. 간단한 텍스트 (성능 최적화)
+            if (frameCount % 10 == 0) {  // 10프레임마다만 텍스트 업데이트
+                std::string text = "Frame: " + std::to_string(frameCount);
+                cv::putText(processedImage, text, cv::Point(30, 50), 
+                           cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
+            } else {
+                // 기존 텍스트 유지를 위해 원본과 합성만
+                processedImage = inputImage.clone();
+                cv::addWeighted(processedImage, 0.85, edgesColor, 0.15, 0, processedImage);
+            }
+            
+        } catch (const cv::Exception& e) {
+            std::cerr << "OpenCV 처리 오류: " << e.what() << std::endl;
+            // 오류 시 원본 이미지 반환
+            processedImage = inputImage.clone();
+        }
+        
+        auto processEnd = high_resolution_clock::now();
+        double processTime = duration_cast<microseconds>(processEnd - processStart).count() / 1000.0;
+        
+        if (verboseOutput && frameCount % 30 == 0) {
+            std::cout << " | OpenCV: " << std::fixed << std::setprecision(1) << processTime << "ms";
+        }
+        
+        return processedImage;
     }
     
     void onRequestCompleted(Request* request) {
@@ -319,29 +411,79 @@ public:
             }
         }
         
-        // DMA-BUF에서 직접 데이터 접근 (zero-copy) - 모든 평면 접근
+        // DMA-BUF에서 직접 데이터 접근 (zero-copy)
         const std::vector<void*>& planeMappings = bufferPlaneMappings[bufferIndex];
-        const std::vector<size_t>& planeSizes = bufferPlaneSizes[bufferIndex];
+        // const std::vector<size_t>& planeSizes = bufferPlaneSizes[bufferIndex]; // 현재 미사용
+        
+        double processOpenCVTime = 0;
+        
+        // OpenCV 처리 (활성화된 경우)
+        if (enableOpenCV && planeMappings.size() >= 1) {
+            auto cvProcessStart = high_resolution_clock::now();
+            
+            // DMA 버퍼 데이터를 OpenCV Mat으로 변환 (zero-copy)
+            uint8_t* srcData = static_cast<uint8_t*>(planeMappings[0]);
+            const StreamConfiguration& streamConfig = config->at(0);
+            int width = streamConfig.size.width;
+            int height = streamConfig.size.height;
+            int stride = streamConfig.stride;
+            
+            // OpenCV Mat 생성 (zero-copy로 버퍼 공유)
+            cv::Mat rawImage(height, width, CV_8UC3, srcData, stride);
+            
+            // 색상 포맷 확인 및 변환 (첫 프레임에서 디버그 정보 출력)
+            cv::Mat workingImage;
+            if (frameCount == 0) {
+                std::cout << "  데이터 샘플 (첫 3픽셀): (" << (int)srcData[0] << "," 
+                         << (int)srcData[1] << "," << (int)srcData[2] << ") ("
+                         << (int)srcData[3] << "," << (int)srcData[4] << "," << (int)srcData[5] << ") ("
+                         << (int)srcData[6] << "," << (int)srcData[7] << "," << (int)srcData[8] << ")" << std::endl;
+            }
+            
+            // libcamera RGB888은 실제로 BGR 순서일 가능성이 높음
+            cv::cvtColor(rawImage, workingImage, cv::COLOR_BGR2RGB);
+            
+            // NEON 최적화된 OpenCV 처리 수행
+            cv::Mat processedImage = processWithOpenCV(workingImage);
+            
+            // 프레임 저장 (요청된 경우)
+            if (saveFrames && frameCount % 30 == 0) {  // 30프레임마다 저장
+                std::string filename = "opencv_frame_" + std::to_string(frameCount) + ".png";
+                
+                // 저장할 때는 BGR 순서로 변환
+                cv::Mat bgrForSave;
+                cv::cvtColor(processedImage, bgrForSave, cv::COLOR_RGB2BGR);
+                
+                if (cv::imwrite(filename, bgrForSave)) {
+                    if (verboseOutput) {
+                        std::cout << " | Saved: " << filename;
+                    }
+                } else {
+                    std::cerr << " | 저장 실패: " << filename;
+                }
+            }
+            
+            auto cvProcessEnd = high_resolution_clock::now();
+            processOpenCVTime = duration_cast<microseconds>(cvProcessEnd - cvProcessStart).count() / 1000.0;
+        }
         
         auto ioEndTime = high_resolution_clock::now();
         double ioTime = duration_cast<microseconds>(ioEndTime - ioStartTime).count() / 1000.0;
         
-        // FPS 계산 - 더 정확한 측정을 위해 1초마다 초기화
+        // FPS 계산
         double fps = 0;
         double instantFps = 0;
         static auto lastFpsUpdateTime = high_resolution_clock::now();
         static int framesSinceLastUpdate = 0;
         
         if (frameCount > 0) {
-            // 전체 세션에 대한 평균 FPS
             auto totalElapsed = duration_cast<microseconds>(ioEndTime - startTime);
             fps = (frameCount + 1) * 1000000.0 / totalElapsed.count();
             
-            // 최근 1초 동안의 순간 FPS
             framesSinceLastUpdate++;
             auto timeSinceLastUpdate = duration_cast<milliseconds>(ioEndTime - lastFpsUpdateTime);
             
-            if (timeSinceLastUpdate.count() >= 1000) {  // 1초마다 업데이트
+            if (timeSinceLastUpdate.count() >= 1000) {
                 instantFps = framesSinceLastUpdate * 1000.0 / timeSinceLastUpdate.count();
                 lastFpsUpdateTime = ioEndTime;
                 framesSinceLastUpdate = 0;
@@ -354,45 +496,43 @@ public:
         stats.captureTime = ioStartTime;
         stats.processTime = ioEndTime;
         stats.ioTime = ioTime;
+        stats.processOpenCVTime = processOpenCVTime;
         stats.instantFps = instantFps;
         stats.avgFps = fps;
         frameStats.push_back(stats);
         
-        // 연속 FPS 모니터링 - 매 30프레임마다 출력
+        // 연속 모니터링 출력
         if (frameCount % 30 == 0 || frameCount < 10) {
             std::cout << "\r■ Frame: " << std::setw(6) << frameCount 
                       << " | Avg FPS: " << std::fixed << std::setprecision(1) << std::setw(5) << stats.avgFps
                       << " | Instant FPS: " << std::fixed << std::setprecision(1) << std::setw(5) << stats.instantFps
                       << " | I/O: " << std::fixed << std::setprecision(1) << std::setw(4) << ioTime << "ms";
+            
+            if (enableOpenCV) {
+                std::cout << " | OpenCV: " << std::fixed << std::setprecision(1) << std::setw(4) << processOpenCVTime << "ms";
+            }
+            
             std::cout.flush();
         }
         
-        // 간단한 데이터 접근만 수행 (파일 저장 없음)
-        if (planeMappings.size() >= 1) {
-            // 데이터 접근만 하고 실제 처리는 생략 (최대 성능을 위해)
-            uint8_t* srcRGB = static_cast<uint8_t*>(planeMappings[0]);
-            size_t dataSize = planeSizes[0];
+        // 첫 프레임에서만 기본 정보 출력
+        if (frameCount == 0) {
+            const StreamConfiguration& streamConfig = config->at(0);
+            int width = streamConfig.size.width;
+            int height = streamConfig.size.height;
+            int stride = streamConfig.stride;
             
-            // 첫 프레임에서만 기본 정보 출력
-            if (frameCount == 0) {
-                const StreamConfiguration& streamConfig = config->at(0);
-                int width = streamConfig.size.width;
-                int height = streamConfig.size.height;
-                int stride = streamConfig.stride;
-                
-                std::cout << "\n초기 설정:" << std::endl;
-                std::cout << "  Format: " << streamConfig.pixelFormat.toString() << std::endl;
-                std::cout << "  Resolution: " << width << "x" << height << std::endl; 
-                std::cout << "  Stride: " << stride << std::endl;
-                std::cout << "  Data Size: " << dataSize << " bytes" << std::endl;
-                std::cout << "  RGB Sample: (" << (int)srcRGB[0] << "," << (int)srcRGB[1] << "," << (int)srcRGB[2] << ")" << std::endl;
-                std::cout << "\nFPS 모니터링 시작 (Ctrl+C로 종료):" << std::endl;
-            }
+            std::cout << "\n초기 설정:" << std::endl;
+            std::cout << "  Format: " << streamConfig.pixelFormat.toString() << std::endl;
+            std::cout << "  Resolution: " << width << "x" << height << std::endl; 
+            std::cout << "  Stride: " << stride << std::endl;
+            std::cout << "  OpenCV 처리: " << (enableOpenCV ? "활성화" : "비활성화") << std::endl;
+            std::cout << "  프레임 저장: " << (saveFrames ? "활성화" : "비활성화") << std::endl;
+            std::cout << "\n모니터링 시작 (Ctrl+C로 종료):" << std::endl;
         }
         
         // 다음 요청 준비
         request->reuse(Request::ReuseFlag::ReuseBuffers);
-        
         frameCount++;
         
         if (!stopping.load()) {
@@ -409,33 +549,40 @@ public:
         
         // 기본 통계 계산
         double totalIoTime = 0;
+        double totalOpenCVTime = 0;
         double maxIoTime = 0;
         double minIoTime = std::numeric_limits<double>::max();
+        double maxOpenCVTime = 0;
+        double minOpenCVTime = std::numeric_limits<double>::max();
         double maxFps = 0;
         double minFps = std::numeric_limits<double>::max();
         
-        // 30fps 달성 여부 통계
         int framesAbove30Fps = 0;
         int frameCount = static_cast<int>(frameStats.size());
         
         for (const auto& stats : frameStats) {
-            // I/O 시간 통계
             totalIoTime += stats.ioTime;
+            totalOpenCVTime += stats.processOpenCVTime;
             maxIoTime = std::max(maxIoTime, stats.ioTime);
             minIoTime = std::min(minIoTime, stats.ioTime);
             
-            // FPS 통계
+            if (enableOpenCV && stats.processOpenCVTime > 0) {
+                maxOpenCVTime = std::max(maxOpenCVTime, stats.processOpenCVTime);
+                minOpenCVTime = std::min(minOpenCVTime, stats.processOpenCVTime);
+            }
+            
             if (stats.avgFps > 0) {
                 maxFps = std::max(maxFps, stats.avgFps);
                 minFps = std::min(minFps, stats.avgFps);
                 
-                if (stats.avgFps >= 29.5) { // 30fps에 근접하는 경우를 허용
+                if (stats.avgFps >= 29.5) {
                     framesAbove30Fps++;
                 }
             }
         }
         
         double avgIoTime = totalIoTime / frameStats.size();
+        double avgOpenCVTime = enableOpenCV ? (totalOpenCVTime / frameStats.size()) : 0;
         auto totalTime = duration_cast<milliseconds>(
             frameStats.back().processTime - startTime).count();
         double avgFps = frameStats.size() * 1000.0 / totalTime;
@@ -443,7 +590,7 @@ public:
         
         // 최종 통계 정보 출력
         std::cout << "\n\n=========================================================" << std::endl;
-        std::cout << "최종 FPS 성능 통계" << std::endl;
+        std::cout << "OpenCV 데모 성능 통계" << std::endl;
         std::cout << "=========================================================" << std::endl;
         std::cout << "총 프레임 수: " << frameCount << " 프레임" << std::endl;
         std::cout << "총 실행 시간: " << std::fixed << std::setprecision(2) << totalTime / 1000.0 << " 초" << std::endl;
@@ -452,6 +599,12 @@ public:
         std::cout << "최대 FPS: " << std::fixed << std::setprecision(1) << maxFps << std::endl;
         std::cout << "30FPS 이상 달성 비율: " << std::fixed << std::setprecision(1) << percent30Fps << "% (" << framesAbove30Fps << "/" << frameCount << ")" << std::endl;
         std::cout << "평균 I/O 시간: " << std::fixed << std::setprecision(2) << avgIoTime << " ms" << std::endl;
+        
+        if (enableOpenCV) {
+            std::cout << "평균 OpenCV 처리 시간: " << std::fixed << std::setprecision(2) << avgOpenCVTime << " ms" << std::endl;
+            std::cout << "최소 OpenCV 처리 시간: " << std::fixed << std::setprecision(2) << minOpenCVTime << " ms" << std::endl;
+            std::cout << "최대 OpenCV 처리 시간: " << std::fixed << std::setprecision(2) << maxOpenCVTime << " ms" << std::endl;
+        }
         
         // 성능 평가
         std::cout << "\n성능 평가:" << std::endl;
@@ -464,24 +617,38 @@ public:
         } else {
             std::cout << "❌ 20fps 미만! 심각한 성능 문제가 있습니다." << std::endl;
         }
+        
+        if (enableOpenCV) {
+            std::cout << "\nOpenCV 처리 분석:" << std::endl;
+            if (avgOpenCVTime < 10.0) {
+                std::cout << "✅ OpenCV 처리가 매우 빠릅니다 (<10ms)" << std::endl;
+            } else if (avgOpenCVTime < 20.0) {
+                std::cout << "⚠️ OpenCV 처리가 다소 느립니다 (<20ms)" << std::endl;
+            } else {
+                std::cout << "❌ OpenCV 처리가 매우 느립니다 (>20ms)" << std::endl;
+            }
+        }
+        
         std::cout << "=========================================================" << std::endl;
     }
 };
 
 // 시그널 핸들러
 static std::atomic<bool> shouldExit{false};
-static DMABufZeroCopyFPSTest* testInstance = nullptr;
+static DMABufOpenCVDemo* demoInstance = nullptr;
 
 void signalHandler(int signal) {
     std::cout << "\n\n신호 수신: " << signal << ". 종료 중..." << std::endl;
     shouldExit.store(true);
-    if (testInstance) {
-        testInstance->stop();
+    if (demoInstance) {
+        demoInstance->stop();
     }
 }
 
 int main(int argc, char** argv) {
-    bool verboseOutput = false;  // 기본적으로 간단한 출력
+    bool verboseOutput = false;
+    bool enableOpenCV = true;
+    bool saveFrames = false;
     
     // 명령행 인수 처리
     for (int i = 1; i < argc; i++) {
@@ -489,10 +656,16 @@ int main(int argc, char** argv) {
         
         if (arg == "--verbose" || arg == "-v") {
             verboseOutput = true;
+        } else if (arg == "--no-opencv") {
+            enableOpenCV = false;
+        } else if (arg == "--save-frames" || arg == "-s") {
+            saveFrames = true;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
             std::cout << "Options:" << std::endl;
             std::cout << "  --verbose, -v            상세 출력 활성화" << std::endl;
+            std::cout << "  --no-opencv              OpenCV 처리 비활성화" << std::endl;
+            std::cout << "  --save-frames, -s        프레임을 PNG 파일로 저장" << std::endl;
             std::cout << "  --help, -h               이 도움말 출력" << std::endl;
             return 0;
         }
@@ -503,37 +676,24 @@ int main(int argc, char** argv) {
     signal(SIGTERM, signalHandler);
     
     std::cout << "=========================================================" << std::endl;
-    std::cout << "DMA-BUF Zero-Copy FPS 테스트 (파일 저장 없음)" << std::endl;
+    std::cout << "DMA-BUF Zero-Copy OpenCV 데모" << std::endl;
     std::cout << "=========================================================" << std::endl;
-    std::cout << "- 설정: 1920x1080 RGB888 포맷 (파일 저장 없음)" << std::endl;
-    std::cout << "- 목표: 최대 FPS 달성 테스트" << std::endl;
+    std::cout << "- 설정: 1920x1080 RGB888 포맷" << std::endl;
+    std::cout << "- OpenCV 처리: " << (enableOpenCV ? "활성화" : "비활성화") << std::endl;
+    std::cout << "- 프레임 저장: " << (saveFrames ? "활성화" : "비활성화") << std::endl;
     std::cout << "- 종료: Ctrl+C 키를 누르세요" << std::endl;
-    std::cout << "=========================================================" << std::endl;
-    std::cout << "최적화 적용 상태:" << std::endl;
-#ifdef _OPENMP
-    std::cout << "✓ OpenMP 병렬처리 활성화" << std::endl;
-#else
-    std::cout << "✗ OpenMP 병렬처리 비활성화" << std::endl;
-#endif
-#ifdef __ARM_NEON
-    std::cout << "✓ ARM NEON SIMD 최적화 활성화" << std::endl;
-#else
-    std::cout << "✗ ARM NEON SIMD 최적화 비활성화" << std::endl;
-#endif
-    std::cout << "✓ -O3 최적화, 루프 언롤링, 네이티브 아키텍처 최적화" << std::endl;
-    std::cout << "✓ 최소 버퍼, 자동 기능 비활성화, 빠른 노출 설정" << std::endl;
     std::cout << "=========================================================" << std::endl;
     
     try {
-        DMABufZeroCopyFPSTest fpsTest(verboseOutput);
-        testInstance = &fpsTest;
+        DMABufOpenCVDemo demo(verboseOutput, enableOpenCV, saveFrames);
+        demoInstance = &demo;
         
-        if (!fpsTest.initialize()) {
+        if (!demo.initialize()) {
             std::cerr << "카메라 초기화 실패" << std::endl;
             return -1;
         }
         
-        if (!fpsTest.start()) {
+        if (!demo.start()) {
             std::cerr << "캡처 시작 실패" << std::endl;
             return -1;
         }
@@ -543,8 +703,8 @@ int main(int argc, char** argv) {
             std::this_thread::sleep_for(100ms);
         }
         
-        fpsTest.stop();
-        fpsTest.printFinalStats();
+        demo.stop();
+        demo.printFinalStats();
         
     } catch (const std::exception& e) {
         std::cerr << "오류 발생: " << e.what() << std::endl;
@@ -553,3 +713,25 @@ int main(int argc, char** argv) {
     
     return 0;
 }
+
+
+/*
+
+1. 컴파일:
+make -f Makefile.opencv_demo
+
+2. 실행 옵션들:
+# 기본 실행 (OpenCV 처리 포함)
+./zero_copy_opencv_demo
+
+# 상세 출력
+./zero_copy_opencv_demo --verbose
+
+# OpenCV 처리 없이 (순수 FPS 테스트)
+./zero_copy_opencv_demo --no-opencv
+
+# 프레임 저장
+./zero_copy_opencv_demo --save-frames
+
+
+*/

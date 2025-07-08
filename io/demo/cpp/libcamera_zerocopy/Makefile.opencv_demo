@@ -1,0 +1,75 @@
+# OpenCV Demo Makefile
+CXX = g++
+TARGET = zero_copy_opencv_demo
+SOURCES = zero_copy_opencv_demo.cpp
+
+# 컴파일 플래그
+CXXFLAGS = -std=c++17 -Wall -Wextra -O3 -march=native -mtune=native
+CXXFLAGS += -funroll-loops -ffast-math -DNDEBUG
+
+# OpenMP 지원
+CXXFLAGS += -fopenmp
+
+# 아키텍처별 NEON 지원 설정
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),aarch64)
+    # ARM64 (64-bit ARM)
+    CXXFLAGS += -D__ARM_NEON
+else ifeq ($(UNAME_M),armv7l)
+    # ARM32 (32-bit ARM)
+    CXXFLAGS += -mfpu=neon -D__ARM_NEON
+else
+    # x86_64 또는 기타 아키텍처 - NEON 비활성화
+    CXXFLAGS += -DDISABLE_NEON
+endif
+
+# OPENCV_FLAGS 사용 (bashrc에서 설정된 값)
+OPENCV_FLAGS_VAR := $(shell echo $$OPENCV_FLAGS)
+LIBS = $(OPENCV_FLAGS_VAR)
+LIBS += -lopencv_imgcodecs -lgomp -lpthread
+
+# 헤더 경로는 OPENCV_FLAGS에 포함되어 있음
+INCLUDES =
+
+# 기본 타겟
+all: $(TARGET)
+
+# 메인 빌드
+$(TARGET): $(SOURCES)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LIBS)
+
+# 정리
+clean:
+	rm -f $(TARGET) *.o *.png
+
+# 실행 옵션들
+run: $(TARGET)
+	./$(TARGET)
+
+run-verbose: $(TARGET)
+	./$(TARGET) --verbose
+
+run-no-opencv: $(TARGET)
+	./$(TARGET) --no-opencv
+
+run-save-frames: $(TARGET)
+	./$(TARGET) --save-frames --verbose
+
+# 디버그 빌드
+debug: CXXFLAGS = -std=c++17 -Wall -Wextra -g -O0 -fopenmp
+debug: CXXFLAGS += $(shell if [ "$(UNAME_M)" = "armv7l" ]; then echo "-mfpu=neon"; fi) -D__ARM_NEON
+debug: $(TARGET)
+
+# 도움말
+help:
+	@echo "사용 가능한 타겟:"
+	@echo "  all                기본 빌드 (최적화된 릴리즈)"
+	@echo "  debug              디버그 빌드"
+	@echo "  clean              생성된 파일 정리"
+	@echo "  run                기본 실행"
+	@echo "  run-verbose        상세 출력으로 실행"
+	@echo "  run-no-opencv      OpenCV 처리 없이 실행"
+	@echo "  run-save-frames    프레임 저장하며 실행"
+	@echo "  help               이 도움말 출력"
+
+.PHONY: all clean run run-verbose run-no-opencv run-save-frames debug help

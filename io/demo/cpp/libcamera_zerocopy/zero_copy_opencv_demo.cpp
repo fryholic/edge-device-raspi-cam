@@ -161,7 +161,7 @@ public:
         StreamConfiguration& streamConfig = config->at(0);
         
         // 성능 최적화를 위한 설정
-        // 1. 해상도를 1920x1080으로 설정 (고정)
+        // 1. 해상도를 1920x1080으로 설정 (고정 - 변경 금지)
         streamConfig.size = Size(1920, 1080);
         
         // 2. RGB888 포맷으로 직접 설정 (BGR 순서로 저장됨)
@@ -319,69 +319,126 @@ public:
         }
     }
     
-    // NEON 최적화된 OpenCV 이미지 처리 함수
+    // 초고성능 실용적 이미지 향상 처리 함수 (1080p 전용 최적화)
     cv::Mat processWithOpenCV(const cv::Mat& inputImage) {
         auto processStart = high_resolution_clock::now();
         
-        cv::Mat processedImage;
-        
-        // NEON과 하드웨어 가속 최적화된 OpenCV 처리
+        // 진정한 Zero-Copy: 원본 데이터를 직접 수정 (복사 없음)
         try {
-#ifdef __ARM_NEON
-            // NEON이 활성화된 경우 더 적극적인 최적화
-            cv::setUseOptimized(true);  // OpenCV 내장 최적화 활성화
-            cv::setNumThreads(4);       // 4코어 활용
+            cv::Mat& workingImage = const_cast<cv::Mat&>(inputImage);
+            
+            auto brightnessStart = high_resolution_clock::now();
+            
+            // 1. 매 프레임 밝기 보정 (극도로 최적화된 알고리즘)
+            // ARM NEON을 활용한 초고속 처리
+#ifdef _OPENMP
+            #pragma omp parallel for schedule(static)
 #endif
-
-            // 1. 하드웨어 가속을 위한 작은 크기 처리 (GPU/ISP 친화적)
-            cv::Mat smallImage;
-            cv::resize(inputImage, smallImage, cv::Size(960, 540), 0, 0, cv::INTER_LINEAR);
+            for (int y = 0; y < workingImage.rows; y++) {
+                uchar* row = workingImage.ptr<uchar>(y);
+                
+#ifdef __ARM_NEON
+                // NEON SIMD를 이용한 16픽셀 병렬 처리
+                const int cols_16 = (workingImage.cols / 16) * 16;
+                int x = 0;
+                
+                // 16픽셀씩 병렬 처리 (48바이트 = 16픽셀 * 3채널)
+                for (; x < cols_16 * 3; x += 48) {
+                    // 16픽셀 로드 (48바이트)
+                    uint8x16_t b_vec = vld1q_u8(&row[x]);
+                    uint8x16_t g_vec = vld1q_u8(&row[x + 16]);
+                    uint8x16_t r_vec = vld1q_u8(&row[x + 32]);
+                    
+                    // 밝기 보정: 각 값에 1.125 곱하기 (x + x/8)
+                    uint8x16_t b_eighth = vshrq_n_u8(b_vec, 3);  // b/8
+                    uint8x16_t g_eighth = vshrq_n_u8(g_vec, 3);  // g/8
+                    uint8x16_t r_eighth = vshrq_n_u8(r_vec, 3);  // r/8
+                    
+                    uint8x16_t b_enhanced = vqaddq_u8(b_vec, b_eighth);  // b + b/8
+                    uint8x16_t g_enhanced = vqaddq_u8(g_vec, g_eighth);  // g + g/8
+                    uint8x16_t r_enhanced = vqaddq_u8(r_vec, r_eighth);  // r + r/8
+                    
+                    // 결과 저장
+                    vst1q_u8(&row[x], b_enhanced);
+                    vst1q_u8(&row[x + 16], g_enhanced);
+                    vst1q_u8(&row[x + 32], r_enhanced);
+                }
+                
+                // 나머지 픽셀 처리 (스칼라 연산)
+                for (; x < workingImage.cols * 3; x += 3) {
+                    int b = row[x];
+                    int g = row[x + 1];
+                    int r = row[x + 2];
+                    
+                    row[x] = cv::saturate_cast<uchar>(b + (b >> 3));
+                    row[x + 1] = cv::saturate_cast<uchar>(g + (g >> 3));
+                    row[x + 2] = cv::saturate_cast<uchar>(r + (r >> 3));
+                }
+#else
+                // 일반적인 스칼라 처리 (NEON 없는 경우)
+                for (int x = 0; x < workingImage.cols * 3; x += 3) {
+                    int b = row[x];
+                    int g = row[x + 1];
+                    int r = row[x + 2];
+                    
+                    row[x] = cv::saturate_cast<uchar>(b + (b >> 3));
+                    row[x + 1] = cv::saturate_cast<uchar>(g + (g >> 3));
+                    row[x + 2] = cv::saturate_cast<uchar>(r + (r >> 3));
+                }
+#endif
+            }
             
-            // 2. NEON 최적화된 간단한 블러 (작은 커널)
-            cv::Mat blurred;
-            cv::GaussianBlur(smallImage, blurred, cv::Size(5, 5), 0);
+            auto brightnessEnd = high_resolution_clock::now();
+            auto sharpnessStart = high_resolution_clock::now();
             
-            // 3. 엣지 검출 (더 작은 크기에서)
-            cv::Mat smallGray, smallEdges;
-            cv::cvtColor(blurred, smallGray, cv::COLOR_RGB2GRAY);
-            cv::Canny(smallGray, smallEdges, 30, 90);  // 임계값 낮춤
+            // 2. 매 프레임 선명도 향상 (극도로 최적화된 라플라시안 필터)
+            // 경계 처리를 최소화하고 캐시 효율성을 극대화
+#ifdef _OPENMP
+            #pragma omp parallel for schedule(static)
+#endif
+            for (int y = 1; y < workingImage.rows - 1; y++) {
+                uchar* prevRow = workingImage.ptr<uchar>(y - 1);
+                uchar* currRow = workingImage.ptr<uchar>(y);
+                uchar* nextRow = workingImage.ptr<uchar>(y + 1);
+                
+                // 행 단위로 처리하여 캐시 효율성 극대화
+                for (int x = 3; x < (workingImage.cols - 1) * 3; x += 3) {
+                    // 각 색상 채널 병렬 처리
+                    for (int c = 0; c < 3; c++) {
+                        // 매우 가벼운 3x3 라플라시안 필터 (계수 최적화)
+                        int center = currRow[x + c];
+                        int edges = prevRow[x + c] + currRow[x - 3 + c] + 
+                                   currRow[x + 3 + c] + nextRow[x + c];
+                        
+                        // 선명도 향상: 원본 + (center*4 - edges) / 8
+                        int sharpened = center + ((center * 4 - edges) >> 3);
+                        currRow[x + c] = cv::saturate_cast<uchar>(sharpened);
+                    }
+                }
+            }
             
-            // 4. 엣지를 원본 크기로 복원 (하드웨어 가속)
-            cv::Mat edges;
-            cv::resize(smallEdges, edges, inputImage.size(), 0, 0, cv::INTER_NEAREST);
+            auto sharpnessEnd = high_resolution_clock::now();
             
-            // 5. 컬러로 변환 (NEON 최적화)
-            cv::Mat edgesColor;
-            cv::cvtColor(edges, edgesColor, cv::COLOR_GRAY2RGB);
-            
-            // 6. 가중 합성 (NEON 최적화)
-            cv::addWeighted(inputImage, 0.85, edgesColor, 0.15, 0, processedImage);
-            
-            // 7. 간단한 텍스트 (성능 최적화)
-            if (frameCount % 10 == 0) {  // 10프레임마다만 텍스트 업데이트
-                std::string text = "Frame: " + std::to_string(frameCount);
-                cv::putText(processedImage, text, cv::Point(30, 50), 
-                           cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
-            } else {
-                // 기존 텍스트 유지를 위해 원본과 합성만
-                processedImage = inputImage.clone();
-                cv::addWeighted(processedImage, 0.85, edgesColor, 0.15, 0, processedImage);
+            // 성능 모니터링 (매 60프레임마다 출력)
+            if (verboseOutput && frameCount % 60 == 0) {
+                double brightnessTime = duration_cast<microseconds>(brightnessEnd - brightnessStart).count() / 1000.0;
+                double sharpnessTime = duration_cast<microseconds>(sharpnessEnd - sharpnessStart).count() / 1000.0;
+                std::cout << " | 밝기:" << std::fixed << std::setprecision(1) << brightnessTime 
+                         << "ms 선명도:" << std::fixed << std::setprecision(1) << sharpnessTime << "ms";
             }
             
         } catch (const cv::Exception& e) {
-            std::cerr << "OpenCV 처리 오류: " << e.what() << std::endl;
-            // 오류 시 원본 이미지 반환
-            processedImage = inputImage.clone();
+            std::cerr << "처리 오류: " << e.what() << std::endl;
         }
         
         auto processEnd = high_resolution_clock::now();
         double processTime = duration_cast<microseconds>(processEnd - processStart).count() / 1000.0;
         
-        if (verboseOutput && frameCount % 30 == 0) {
-            std::cout << " | OpenCV: " << std::fixed << std::setprecision(1) << processTime << "ms";
+        if (verboseOutput && frameCount % 60 == 0) {
+            std::cout << " | 총처리: " << std::fixed << std::setprecision(1) << processTime << "ms";
         }
         
-        return processedImage;
+        return inputImage;  // 수정된 원본 반환
     }
     
     void onRequestCompleted(Request* request) {
@@ -431,8 +488,7 @@ public:
             // OpenCV Mat 생성 (zero-copy로 버퍼 공유)
             cv::Mat rawImage(height, width, CV_8UC3, srcData, stride);
             
-            // 색상 포맷 확인 및 변환 (첫 프레임에서 디버그 정보 출력)
-            cv::Mat workingImage;
+            // 색상 포맷 확인 (첫 프레임에서만)
             if (frameCount == 0) {
                 std::cout << "  데이터 샘플 (첫 3픽셀): (" << (int)srcData[0] << "," 
                          << (int)srcData[1] << "," << (int)srcData[2] << ") ("
@@ -440,21 +496,19 @@ public:
                          << (int)srcData[6] << "," << (int)srcData[7] << "," << (int)srcData[8] << ")" << std::endl;
             }
             
-            // libcamera RGB888은 실제로 BGR 순서일 가능성이 높음
-            cv::cvtColor(rawImage, workingImage, cv::COLOR_BGR2RGB);
+            // 진정한 Zero-Copy: 색상 변환 없이 원본 데이터 직접 사용
+            // libcamera RGB888 데이터를 그대로 처리 (변환 오버헤드 완전 제거)
+            cv::Mat& workingImage = rawImage;
             
-            // NEON 최적화된 OpenCV 처리 수행
+            // 초고속 이미지 향상 처리 수행
             cv::Mat processedImage = processWithOpenCV(workingImage);
             
-            // 프레임 저장 (요청된 경우)
-            if (saveFrames && frameCount % 30 == 0) {  // 30프레임마다 저장
-                std::string filename = "opencv_frame_" + std::to_string(frameCount) + ".png";
+            // 프레임 저장 (요청된 경우) - Zero-Copy로 최적화
+            if (saveFrames && frameCount % 30 == 0) {  // 30프레임마다 저장 (성능상 필요)
+                std::string filename = "enhanced_frame_" + std::to_string(frameCount) + ".png";
                 
-                // 저장할 때는 BGR 순서로 변환
-                cv::Mat bgrForSave;
-                cv::cvtColor(processedImage, bgrForSave, cv::COLOR_RGB2BGR);
-                
-                if (cv::imwrite(filename, bgrForSave)) {
+                // 매 프레임 처리된 결과를 저장
+                if (cv::imwrite(filename, processedImage)) {
                     if (verboseOutput) {
                         std::cout << " | Saved: " << filename;
                     }
@@ -509,7 +563,7 @@ public:
                       << " | I/O: " << std::fixed << std::setprecision(1) << std::setw(4) << ioTime << "ms";
             
             if (enableOpenCV) {
-                std::cout << " | OpenCV: " << std::fixed << std::setprecision(1) << std::setw(4) << processOpenCVTime << "ms";
+                std::cout << " | 이미지향상: " << std::fixed << std::setprecision(1) << std::setw(4) << processOpenCVTime << "ms";
             }
             
             std::cout.flush();
@@ -526,7 +580,7 @@ public:
             std::cout << "  Format: " << streamConfig.pixelFormat.toString() << std::endl;
             std::cout << "  Resolution: " << width << "x" << height << std::endl; 
             std::cout << "  Stride: " << stride << std::endl;
-            std::cout << "  OpenCV 처리: " << (enableOpenCV ? "활성화" : "비활성화") << std::endl;
+            std::cout << "  OpenCV 처리: " << (enableOpenCV ? "이미지 향상 활성화" : "비활성화") << std::endl;
             std::cout << "  프레임 저장: " << (saveFrames ? "활성화" : "비활성화") << std::endl;
             std::cout << "\n모니터링 시작 (Ctrl+C로 종료):" << std::endl;
         }
@@ -601,9 +655,9 @@ public:
         std::cout << "평균 I/O 시간: " << std::fixed << std::setprecision(2) << avgIoTime << " ms" << std::endl;
         
         if (enableOpenCV) {
-            std::cout << "평균 OpenCV 처리 시간: " << std::fixed << std::setprecision(2) << avgOpenCVTime << " ms" << std::endl;
-            std::cout << "최소 OpenCV 처리 시간: " << std::fixed << std::setprecision(2) << minOpenCVTime << " ms" << std::endl;
-            std::cout << "최대 OpenCV 처리 시간: " << std::fixed << std::setprecision(2) << maxOpenCVTime << " ms" << std::endl;
+            std::cout << "평균 이미지 향상 처리 시간: " << std::fixed << std::setprecision(2) << avgOpenCVTime << " ms" << std::endl;
+            std::cout << "최소 이미지 향상 처리 시간: " << std::fixed << std::setprecision(2) << minOpenCVTime << " ms" << std::endl;
+            std::cout << "최대 이미지 향상 처리 시간: " << std::fixed << std::setprecision(2) << maxOpenCVTime << " ms" << std::endl;
         }
         
         // 성능 평가
@@ -619,13 +673,13 @@ public:
         }
         
         if (enableOpenCV) {
-            std::cout << "\nOpenCV 처리 분석:" << std::endl;
+            std::cout << "\n이미지 향상 처리 분석:" << std::endl;
             if (avgOpenCVTime < 10.0) {
-                std::cout << "✅ OpenCV 처리가 매우 빠릅니다 (<10ms)" << std::endl;
+                std::cout << "✅ 이미지 향상 처리가 매우 빠릅니다 (<10ms)" << std::endl;
             } else if (avgOpenCVTime < 20.0) {
-                std::cout << "⚠️ OpenCV 처리가 다소 느립니다 (<20ms)" << std::endl;
+                std::cout << "⚠️ 이미지 향상 처리가 다소 느립니다 (<20ms)" << std::endl;
             } else {
-                std::cout << "❌ OpenCV 처리가 매우 느립니다 (>20ms)" << std::endl;
+                std::cout << "❌ 이미지 향상 처리가 매우 느립니다 (>20ms)" << std::endl;
             }
         }
         
@@ -678,8 +732,8 @@ int main(int argc, char** argv) {
     std::cout << "=========================================================" << std::endl;
     std::cout << "DMA-BUF Zero-Copy OpenCV 데모" << std::endl;
     std::cout << "=========================================================" << std::endl;
-    std::cout << "- 설정: 1920x1080 RGB888 포맷" << std::endl;
-    std::cout << "- OpenCV 처리: " << (enableOpenCV ? "활성화" : "비활성화") << std::endl;
+    std::cout << "- 설정: 1920x1080 RGB888 포맷 (고정 해상도)" << std::endl;
+    std::cout << "- 이미지 향상: " << (enableOpenCV ? "활성화 (경량화된 밝기/선명도 보정)" : "비활성화") << std::endl;
     std::cout << "- 프레임 저장: " << (saveFrames ? "활성화" : "비활성화") << std::endl;
     std::cout << "- 종료: Ctrl+C 키를 누르세요" << std::endl;
     std::cout << "=========================================================" << std::endl;

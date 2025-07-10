@@ -262,7 +262,6 @@ public:
         cv::Mat frame(streamConfig.size.height, streamConfig.size.width, CV_8UC3, data, streamConfig.stride);
         
         double imageProcessingTimeMs = 0;
-        cv::Mat processedFrame;
 
         if (enableOpenCV) {
             auto cvStart = high_resolution_clock::now();
@@ -270,68 +269,36 @@ public:
             if (useGPU) {
                 cv::UMat processedGpu = processWithGPU(frame);
                 cv::ocl::finish(); 
-                processedFrame = processedGpu.getMat(cv::ACCESS_READ);
+                if (saveFrames && (frameCount % 30 == 0)) {
+                    cv::Mat processedCpu = processedGpu.getMat(cv::ACCESS_READ);
+                    cv::imwrite("enhanced_frame_" + std::to_string(frameCount) + ".jpg", processedCpu);
+                }
             } else {
                 // CPU 처리 (GPU 사용 불가 시)
-                cv::Mat enhanced;
-                frame.convertTo(enhanced, -1, 1.1, 10);
-                cv::Mat blurred;
-                cv::GaussianBlur(enhanced, blurred, cv::Size(0, 0), 3);
-                cv::addWeighted(enhanced, 1.5, blurred, -0.5, 0, processedFrame);
             }
 
             auto cvEnd = high_resolution_clock::now();
             imageProcessingTimeMs = duration_cast<microseconds>(cvEnd - cvStart).count() / 1000.0;
-            
-            // 프레임 저장
-            if (saveFrames && (frameCount % 30 == 0)) {
-                // 원본 프레임 저장 (처리 전)
-                std::string originalPath = "/home/lee/Documents/server-raspicam/original_frame_" + std::to_string(frameCount) + ".jpg";
-                bool saveOriginal = cv::imwrite(originalPath, frame);
-                
-                // 처리된 프레임 저장 (BGR 형식)
-                std::string enhancedPath = "/home/lee/Documents/server-raspicam/enhanced_frame_" + std::to_string(frameCount) + ".jpg";
-                bool saveEnhanced = cv::imwrite(enhancedPath, processedFrame);
-                
-                if (saveOriginal && saveEnhanced) {
-                    std::cout << "\n프레임 저장 완료:" << std::endl;
-                    std::cout << "  원본: " << originalPath << std::endl;
-                    std::cout << "  처리: " << enhancedPath << std::endl;
-                } else {
-                    std::cerr << "\n프레임 저장 실패: 원본=" << saveOriginal << ", 처리=" << saveEnhanced << std::endl;
-                }
-            }
         }
 
         auto processEndTime = high_resolution_clock::now();
         double totalProcessingTimeMs = duration_cast<microseconds>(processEndTime - processStartTime).count() / 1000.0;
         
-        // Instant FPS 계산 (이전 프레임과의 시간 차이 기반)
-        double instantFps = 0.0;
-        if (!frameStats.empty()) {
-            auto timeDiff = duration_cast<microseconds>(processStartTime - frameStats.back().captureTime);
-            if (timeDiff.count() > 0) {
-                instantFps = 1000000.0 / timeDiff.count();
-            }
-        }
-        
-        // 평균 FPS 계산
         double avgFps = 0;
         if (frameCount > 0) {
             auto totalElapsed = duration_cast<microseconds>(processEndTime - startTime);
-            avgFps = (frameCount + 1) * 1000000.0 / totalElapsed.count();
+            avgFps = frameCount * 1000000.0 / totalElapsed.count();
         }
 
         frameStats.push_back({
             frameCount, processStartTime, processEndTime,
-            totalProcessingTimeMs, imageProcessingTimeMs, instantFps, avgFps
+            totalProcessingTimeMs, imageProcessingTimeMs, 0.0, avgFps
         });
 
         if (verboseOutput && frameCount % 30 == 0) {
             std::cout << "\r" << std::fixed << std::setprecision(1)
                       << "Frame: " << std::setw(5) << frameCount
                       << " | Avg FPS: " << std::setw(5) << avgFps
-                      << " | Instant FPS: " << std::setw(5) << instantFps
                       << " | Total Time: " << std::setw(5) << totalProcessingTimeMs << "ms"
                       << " | ImgProc (" << (useGPU ? "GPU" : "CPU") << "): " << std::setw(5) << imageProcessingTimeMs << "ms  ";
             std::cout.flush();
@@ -349,14 +316,8 @@ public:
 
         double totalProcTimeSum = 0;
         double imgProcTimeSum = 0;
-        double instantFpsSum = 0;
         double maxImgProcTime = 0;
         double minImgProcTime = std::numeric_limits<double>::max();
-        double maxInstantFps = 0;
-        double minInstantFps = std::numeric_limits<double>::max();
-
-        // 유효한 instant FPS 값들만 계산 (0이 아닌 값들)
-        size_t validInstantFpsCount = 0;
 
         for (const auto& s : frameStats) {
             totalProcTimeSum += s.totalProcessingTime;
@@ -365,31 +326,16 @@ public:
                 maxImgProcTime = std::max(maxImgProcTime, s.imageProcessingTime);
                 minImgProcTime = std::min(minImgProcTime, s.imageProcessingTime);
             }
-            
-            // Instant FPS 통계 (0이 아닌 값들만)
-            if (s.instantFps > 0) {
-                instantFpsSum += s.instantFps;
-                maxInstantFps = std::max(maxInstantFps, s.instantFps);
-                minInstantFps = std::min(minInstantFps, s.instantFps);
-                validInstantFpsCount++;
-            }
         }
 
         double avgTotalTime = totalProcTimeSum / frameStats.size();
         double avgImgProcTime = enableOpenCV ? (imgProcTimeSum / frameStats.size()) : 0;
-        double avgInstantFps = validInstantFpsCount > 0 ? (instantFpsSum / validInstantFpsCount) : 0;
         double finalAvgFps = frameStats.back().avgFps;
 
         std::cout << "\n\n================ 최종 성능 통계 ================" << std::endl;
         std::cout << "총 실행 시간: " << duration_cast<milliseconds>(frameStats.back().processEndTime - startTime).count() / 1000.0 << " 초" << std::endl;
         std::cout << "총 처리 프레임: " << frameStats.size() << " 프레임" << std::endl;
         std::cout << "최종 평균 FPS: " << std::fixed << std::setprecision(1) << finalAvgFps << std::endl;
-        if (validInstantFpsCount > 0) {
-            std::cout << "Instant FPS 통계:" << std::endl;
-            std::cout << "  - 평균: " << std::fixed << std::setprecision(1) << avgInstantFps << " FPS" << std::endl;
-            std::cout << "  - 최소: " << minInstantFps << " FPS" << std::endl;
-            std::cout << "  - 최대: " << maxInstantFps << " FPS" << std::endl;
-        }
         std::cout << "------------------------------------------------" << std::endl;
         std::cout << "평균 프레임 처리 시간 (Total): " << std::fixed << std::setprecision(2) << avgTotalTime << " ms" << std::endl;
         if (enableOpenCV) {

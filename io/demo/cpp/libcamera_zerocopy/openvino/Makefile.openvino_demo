@@ -1,0 +1,79 @@
+# Makefile for GPU-accelerated Zero-Copy OpenVINO Demo
+# OpenCV + OpenVINO 연동
+
+CXX = g++
+TARGET = zero_copy_openvino_demo
+SOURCES = zero_copy_openvino_demo.cpp
+
+# --- 컴파일러 플래그 (Compiler Flags) ---
+CXXFLAGS = -std=c++17 -Wall -Wextra -O3 -pipe -fomit-frame-pointer
+CXXFLAGS += -march=native -mtune=native
+CXXFLAGS += -funroll-loops -ffast-math
+CXXFLAGS += -DNDEBUG
+CXXFLAGS += -fopenmp
+
+ifeq ($(shell grep -c "Raspberry Pi" /proc/device-tree/model 2>/dev/null || echo 0),1)
+	CXXFLAGS += -mcpu=cortex-a72
+endif
+
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),aarch64)
+	CXXFLAGS += -D__ARM_NEON
+	CXXFLAGS += -funsafe-math-optimizations
+else ifeq ($(UNAME_M),armv7l)
+	CXXFLAGS += -mfpu=neon -D__ARM_NEON
+endif
+
+# --- 라이브러리 및 헤더 경로 (Libraries & Headers) ---
+
+# OpenCV 플래그 설정 (환경 변수 우선, 없으면 pkg-config 사용)
+OPENCV_FLAGS_VAR := $(shell echo $$OPENCV_FLAGS)
+ifeq ($(strip $(OPENCV_FLAGS_VAR)),)
+	OPENCV_CFLAGS := $(shell pkg-config --cflags opencv4 2>/dev/null || echo "-I/usr/local/include/opencv4")
+	OPENCV_LIBS := $(shell pkg-config --libs opencv4 2>/dev/null || echo "-L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_videoio -lopencv_imgcodecs")
+else
+	OPENCV_CFLAGS := 
+	OPENCV_LIBS := $(OPENCV_FLAGS_VAR)
+endif
+
+# OpenVINO (pkg-config 사용 권장, 환경에 따라 경로 조정)
+OPENVINO_CFLAGS := -I/home/park/openvino/src/inference/include -I/home/park/openvino/src/core/include
+OPENVINO_LIBS := -L/home/park/openvino/bin/aarch64/Release -lopenvino
+
+# 최종 라이브러리 설정
+LIBS = $(OPENCV_LIBS) $(OPENVINO_LIBS) -lopencv_dnn -lcamera -lcamera-base -lgomp -lpthread
+
+INCLUDES = $(OPENCV_CFLAGS) $(OPENVINO_CFLAGS) -I/usr/include/libcamera
+
+# --- 빌드 규칙 (Build Rules) ---
+
+all: $(TARGET)
+
+$(TARGET): $(SOURCES)
+	@echo "--- OpenVINO + OpenCV 라이브러리로 컴파일을 시작합니다 ---"
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LIBS)
+	@echo "--- 빌드 완료: $(TARGET) ---"
+
+clean:
+	@echo "--- 생성된 파일을 정리합니다 ---"
+	rm -f $(TARGET) *.o *.jpg *.png
+
+run: all
+	./$(TARGET)
+
+debug: CXXFLAGS_DEBUG = -std=c++17 -Wall -Wextra -g -O0 -fopenmp
+debug:
+	@echo "--- 디버그 모드로 컴파일을 시작합니다 (최적화 비활성화) ---"
+	$(CXX) $(CXXFLAGS_DEBUG) $(INCLUDES) -o $(TARGET) $(SOURCES) $(LIBS)
+	@echo "--- 디버그 빌드 완료: $(TARGET) ---"
+
+help:
+	@echo "사용법: make [target]"
+	@echo ""
+	@echo "  all      기본 빌드 (OpenVINO + OpenCV)"
+	@echo "  debug    디버그 빌드"
+	@echo "  clean    생성된 파일 정리"
+	@echo "  run      실행"
+	@echo "  help     이 도움말 출력"
+
+.PHONY: all clean debug run help

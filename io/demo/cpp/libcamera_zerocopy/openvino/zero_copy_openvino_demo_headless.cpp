@@ -270,21 +270,6 @@ public:
             std::cout << "[FPS: " << std::fixed << std::setprecision(1) << fps 
                       << ", 추론시간: " << inference_ms << "ms] 프레임 처리 중..." << std::endl;
         }
-        cv::putText(frame, cv::format("FPS: %.1f", fps), cv::Point(20, 40), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0,255,0), 2);
-
-        // Bounding Box (사람만, class_id==0)
-        for (const auto& det : yolo->getDetections()) {
-            if (det.class_id == 0 && det.confidence > 0.3) { // threshold를 0.3으로 변경
-                cv::rectangle(frame, det.bbox, cv::Scalar(0,0,255), 2);
-                cv::putText(frame, "person", det.bbox.tl(), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0,0,255), 2);
-            }
-        }
-
-        // 결과 이미지 표시 (BGR888 → RGB 변환 후 출력)
-        cv::Mat rgbFrame;
-        cv::cvtColor(frame, rgbFrame, cv::COLOR_BGR2RGB);
-        cv::imshow("Camera", rgbFrame);
-        cv::waitKey(1);
 
         request->reuse(libcamera::Request::ReuseFlag::ReuseBuffers);
         if (!stopping.load()) camera->queueRequest(request);
@@ -301,7 +286,7 @@ void signalHandler(int signal) {
 }
 
 int main(int argc, char** argv) {
-    std::cout << "=== Zero Copy OpenVINO YOLO Demo (GUI) ===" << std::endl;
+    std::cout << "=== Zero Copy OpenVINO YOLO Demo (Headless) ===" << std::endl;
     
     std::string model_xml = "/home/lee/Documents/server-raspicam/io/demo/cpp/libcamera_zerocopy/openvino/yolo5n_openvino_model/yolov5n.xml";
     
@@ -323,9 +308,10 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "실행 중... (Ctrl+C로 종료)" << std::endl;
-    while (!shouldExit.load()) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    while (!shouldExit.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     std::cout << "프로그램 종료" << std::endl;
-    cv::destroyAllWindows();
     return 0;
 }

@@ -1,75 +1,109 @@
-# OpenCV Demo Makefile
+# Makefile for GPU-accelerated Zero-Copy OpenCV Demo
+# 사용자 정의 OPENCV_FLAGS를 유지하며 최적화 옵션을 적용
+
+# 컴파일러 및 타겟 설정
 CXX = g++
 TARGET = zero_copy_opencv_demo
 SOURCES = zero_copy_opencv_demo.cpp
 
-# 컴파일 플래그
-CXXFLAGS = -std=c++17 -Wall -Wextra -O3 -march=native -mtune=native
-CXXFLAGS += -funroll-loops -ffast-math -DNDEBUG
+# --- 컴파일러 플래그 (Compiler Flags) ---
 
-# OpenMP 지원
+# 기본 최적화 플래그 (C++17 표준, 최고 최적화 레벨)
+CXXFLAGS = -std=c++17 -Wall -Wextra -O3 -pipe -fomit-frame-pointer
+# 현재 시스템(라즈베리파이) 아키텍처에 맞춰 최적화
+CXXFLAGS += -march=native -mtune=native
+# 추가적인 고성능 최적화 (루프 언롤링, 빠른 수학 연산)
+CXXFLAGS += -funroll-loops -ffast-math
+# 릴리즈 빌드를 위해 디버그 코드 비활성화
+CXXFLAGS += -DNDEBUG
+
+# OpenMP 병렬 처리 지원
 CXXFLAGS += -fopenmp
 
-# 아키텍처별 NEON 지원 설정
-UNAME_M := $(shell uname -m)
-ifeq ($(UNAME_M),aarch64)
-    # ARM64 (64-bit ARM)
-    CXXFLAGS += -D__ARM_NEON
-else ifeq ($(UNAME_M),armv7l)
-    # ARM32 (32-bit ARM)
-    CXXFLAGS += -mfpu=neon -D__ARM_NEON
-else
-    # x86_64 또는 기타 아키텍처 - NEON 비활성화
-    CXXFLAGS += -DDISABLE_NEON
+# Raspberry Pi 특화 최적화 (코어 아키텍처 지정)
+ifeq ($(shell grep -c "Raspberry Pi" /proc/device-tree/model 2>/dev/null || echo 0),1)
+	# Raspberry Pi 4/5의 Cortex-A72 아키텍처에 맞춤
+	CXXFLAGS += -mcpu=cortex-a72
 endif
 
-# OPENCV_FLAGS 사용 (bashrc에서 설정된 값)
+# 아키텍처별 NEON SIMD 명령어 지원 자동 감지
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),aarch64)
+	# ARM64 (64-bit)
+	CXXFLAGS += -D__ARM_NEON
+	# 더 공격적인 수학 최적화 (64비트에서 안전)
+	CXXFLAGS += -funsafe-math-optimizations
+else ifeq ($(UNAME_M),armv7l)
+	# ARM32 (32-bit)
+	CXXFLAGS += -mfpu=neon -D__ARM_NEON
+endif
+
+
+# --- 라이브러리 및 헤더 경로 (Libraries & Headers) ---
+
+# 중요: 사용자 정의 OPENCV_FLAGS 사용 (bashrc 등에서 설정된 값)
 OPENCV_FLAGS_VAR := $(shell echo $$OPENCV_FLAGS)
+
+# 최종 라이브러리 설정
 LIBS = $(OPENCV_FLAGS_VAR)
 LIBS += -lopencv_imgcodecs -lgomp -lpthread
+# 참고: 만약 OpenCL 관련 링크 오류가 발생하면, 아래 라이브러리 중 하나를 추가해야 할 수 있습니다.
+# LIBS += -lopencv_ocl 또는 LIBS += -lOpenCL
 
-# 헤더 경로는 OPENCV_FLAGS에 포함되어 있음
+# 헤더 경로는 OPENCV_FLAGS_VAR에 포함되어 있으므로 별도 설정이 필요 없습니다.
 INCLUDES =
 
-# 기본 타겟
+# --- 빌드 규칙 (Build Rules) ---
+
+# 기본 타겟: 'make' 또는 'make all' 실행 시
 all: $(TARGET)
 
-# 메인 빌드
+# 메인 빌드 규칙
 $(TARGET): $(SOURCES)
+	@echo "--- 사용자 정의 라이브러리 경로와 최적화 옵션으로 컴파일을 시작합니다 ---"
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LIBS)
+	@echo "--- 빌드 완료: $(TARGET) ---"
 
 # 정리
 clean:
-	rm -f $(TARGET) *.o *.png
+	@echo "--- 생성된 파일을 정리합니다 ---"
+	rm -f $(TARGET) *.o *.jpg *.png
 
-# 실행 옵션들
-run: $(TARGET)
+# --- 실행 단축키 (Run Shortcuts) ---
+
+run: all
 	./$(TARGET)
 
-run-verbose: $(TARGET)
-	./$(TARGET) --verbose
-
-run-no-opencv: $(TARGET)
+run-no-opencv: all
 	./$(TARGET) --no-opencv
 
-run-save-frames: $(TARGET)
-	./$(TARGET) --save-frames --verbose
+run-save-frames: all
+	./$(TARGET) --save-frames
 
-# 디버그 빌드
-debug: CXXFLAGS = -std=c++17 -Wall -Wextra -g -O0 -fopenmp
-debug: CXXFLAGS += $(shell if [ "$(UNAME_M)" = "armv7l" ]; then echo "-mfpu=neon"; fi) -D__ARM_NEON
-debug: $(TARGET)
+run-compare: all
+	@echo "--- 원본과 처리된 프레임을 비교용으로 저장하며 실행합니다 ---"
+	./$(TARGET) --save-frames
+
+# 디버그 빌드 (최적화 비활성화, 디버그 심볼 포함)
+debug: CXXFLAGS_DEBUG = -std=c++17 -Wall -Wextra -g -O0 -fopenmp
+debug:
+	@echo "--- 디버그 모드로 컴파일을 시작합니다 (최적화 비활성화) ---"
+	$(CXX) $(CXXFLAGS_DEBUG) -o $(TARGET) $(SOURCES) $(LIBS)
+	@echo "--- 디버그 빌드 완료: $(TARGET) ---"
 
 # 도움말
 help:
+	@echo "사용법: make [target]"
+	@echo ""
 	@echo "사용 가능한 타겟:"
-	@echo "  all                기본 빌드 (최적화된 릴리즈)"
-	@echo "  debug              디버그 빌드"
-	@echo "  clean              생성된 파일 정리"
-	@echo "  run                기본 실행"
-	@echo "  run-verbose        상세 출력으로 실행"
-	@echo "  run-no-opencv      OpenCV 처리 없이 실행"
-	@echo "  run-save-frames    프레임 저장하며 실행"
-	@echo "  help               이 도움말 출력"
+	@echo "  all             기본 빌드 (최적화된 릴리즈)"
+	@echo "  debug           디버그 빌드 (-g 플래그, 최적화 없음)"
+	@echo "  clean           생성된 파일 정리"
+	@echo "  run             기본 실행 (GPU 처리 활성화)"
+	@echo "  run-no-opencv   OpenCV 처리 없이 실행 (순수 카메라 FPS 테스트)"
+	@echo "  run-save-frames 프레임을 JPG 파일로 저장하며 실행 (성능 저하)"
+	@echo "  run-compare     원본과 처리된 프레임을 모두 저장하여 비교"
+	@echo "  help            이 도움말 출력"
 
-.PHONY: all clean run run-verbose run-no-opencv run-save-frames debug help
+# .PHONY: 다른 파일과 이름이 같아도 항상 실행되도록 보장
+.PHONY: all clean debug run run-no-opencv run-save-frames run-compare help

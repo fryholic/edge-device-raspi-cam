@@ -288,7 +288,7 @@ void signalHandler(int signal) {
 int main(int argc, char** argv) {
     std::cout << "=== Zero Copy OpenVINO YOLO Demo (Headless) ===" << std::endl;
     
-    std::string model_xml = "/home/lee/Documents/server-raspicam/io/demo/cpp/libcamera_zerocopy/openvino/yolo5n_openvino_model/yolov5n.xml";
+    std::string model_xml = "/home/lee/Documents/server-raspicam/io/demo/cpp/libcamera_zerocopy/openvino/yolo11n_openvino_model/yolo11n.xml";
     
     std::cout << "모델 파일: " << model_xml << std::endl;
     

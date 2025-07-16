@@ -4,11 +4,16 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -g -O2 -Wall
 
+
 # 프로젝트 설정
 TARGET = zero_copy_openvino_demo
 SOURCE = zero_copy_openvino_demo.cpp
 TARGET_HEADLESS = zero_copy_openvino_demo_headless
 SOURCE_HEADLESS = zero_copy_openvino_demo_headless.cpp
+
+# SORT 통합 버전
+TARGET_SORT = zero_copy_openvino_sort_demo
+SOURCE_SORT = zero_copy_openvino_sort_demo.cpp
 
 # OpenVINO 설정 (GLIBC 호환 버전)
 OPENVINO_INCLUDE = -I/home/lee/openvino/build/install/usr/local/runtime/include
@@ -23,10 +28,15 @@ OPENCV_LIBS_HEADLESS = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_
 LIBCAMERA_INCLUDE = -I/usr/include/libcamera
 LIBCAMERA_LIBS = -lcamera -lcamera-base
 
+
+# Eigen 헤더 경로 추가
+EIGEN_INCLUDE = -I/usr/include/eigen3
+
 # 전체 플래그 설정
-INCLUDES = $(OPENVINO_INCLUDE) $(OPENCV_INCLUDE) $(LIBCAMERA_INCLUDE)
+INCLUDES = $(OPENVINO_INCLUDE) $(OPENCV_INCLUDE) $(LIBCAMERA_INCLUDE) $(EIGEN_INCLUDE)
 LIBS = $(OPENVINO_LIBS) $(OPENCV_LIBS) $(LIBCAMERA_LIBS) -lpthread
 LIBS_HEADLESS = $(OPENVINO_LIBS) $(OPENCV_LIBS_HEADLESS) $(LIBCAMERA_LIBS) -lpthread
+
 
 # 빌드 규칙
 all: $(TARGET)
@@ -40,9 +50,14 @@ headless: $(TARGET_HEADLESS)
 $(TARGET_HEADLESS): $(SOURCE_HEADLESS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_HEADLESS) $(SOURCE_HEADLESS) $(LIBS_HEADLESS)
 
+# SORT 통합 버전 빌드
+zero_copy_openvino_sort_demo: zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o zero_copy_openvino_sort_demo zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
+
 # 정리
 clean:
 	rm -f $(TARGET) $(TARGET_HEADLESS)
+
 
 # 실행
 run: $(TARGET)
@@ -51,6 +66,10 @@ run: $(TARGET)
 # 헤드리스 버전 실행
 run-headless: $(TARGET_HEADLESS)
 	./$(TARGET_HEADLESS)
+
+# SORT 통합 버전 실행
+run-sort: zero_copy_openvino_sort_demo
+	./zero_copy_openvino_sort_demo
 
 # 디버그 빌드
 debug: CXXFLAGS += -DDEBUG -g3

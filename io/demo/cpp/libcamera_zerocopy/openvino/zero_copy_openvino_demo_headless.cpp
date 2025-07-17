@@ -39,53 +39,57 @@ public:
     std::vector<Detection> detections;
 
     void infer(const cv::Mat& frame) {
+        static bool first_infer = true;
         auto start_time = std::chrono::steady_clock::now();
         
         // 전처리: 모델에 맞게 수정 (BGR → RGB)
-        cv::Mat resized, rgb;
+        cv::Mat resized;
         cv::resize(frame, resized, cv::Size(input_port.get_shape()[3], input_port.get_shape()[2]));
-        cv::cvtColor(resized, rgb, cv::COLOR_BGR2RGB);
-        rgb.convertTo(rgb, CV_32F, 1.0 / 255);
+        resized.convertTo(resized, CV_32F, 1.0 / 255);
+        // RGB888이므로 cv::cvtColor 불필요
 
         auto preprocess_time = std::chrono::steady_clock::now();
 
-        ov::Tensor input_tensor(input_port.get_element_type(), input_port.get_shape(), rgb.data);
+        ov::Tensor input_tensor(input_port.get_element_type(), input_port.get_shape(), resized.data);
         infer_request.set_input_tensor(input_tensor);
         infer_request.infer();
 
         auto inference_time = std::chrono::steady_clock::now();
 
-        // YOLOv5 후처리 (가장 일반적인 [N, 85] 구조, N: 감지 개수, 0~3: x,y,w,h, 4: conf, 5~: class score)
-        detections.clear();
         auto output = infer_request.get_output_tensor(0); // 첫 번째 출력 사용
         const float* data = output.data<float>();
         const ov::Shape& shape = output.get_shape();
-        
+        // YOLOv5 후처리 (output shape: [1, 84, 2100], 0~3: bbox, 4: objectness, 5~: class score)
+        detections.clear();
         size_t numBatch = shape[0]; // 1
-        size_t numDet = shape[1]; // 6300
-        size_t numElem = shape[2]; // 85
+        size_t numFeature = shape[1]; // 84
+        size_t numDet = shape[2]; // 2100
         int detected = 0;
-        
         for (size_t i = 0; i < numDet; ++i) {
-            const float* det = data + i * numElem; // batch=0만 사용
-            float conf = det[4];
-            if (conf < 0.3) continue; // threshold를 0.3으로 설정
-            float maxScore = 0;
-            int classId = -1;
-            for (int c = 5; c < numElem; ++c) {
-                if (det[c] > maxScore) {
-                    maxScore = det[c];
-                    classId = c - 5;
+            float cx = data[numFeature * i + 0];
+            float cy = data[numFeature * i + 1];
+            float w  = data[numFeature * i + 2];
+            float h  = data[numFeature * i + 3];
+            float obj_conf = 1.0f / (1.0f + expf(-data[numFeature * i + 4])); // sigmoid
+            if (obj_conf < 0.3f) continue;
+            // class score
+            float max_cls = 0.0f;
+            int class_id = -1;
+            for (int c = 5; c < (int)numFeature; ++c) {
+                float cls_score = 1.0f / (1.0f + expf(-data[numFeature * i + c])); // sigmoid
+                if (cls_score > max_cls) {
+                    max_cls = cls_score;
+                    class_id = c - 5;
                 }
             }
-            if (maxScore * conf < 0.3) continue; // threshold를 0.3으로 설정
-            float cx = det[0], cy = det[1], w = det[2], h = det[3];
-            // input shape: [N, 3, H, W], 여기서 H=input_port.get_shape()[2], W=input_port.get_shape()[3]
+            float conf = obj_conf * max_cls;
+            if (conf < 0.3f) continue;
+            // bbox 변환 (input shape: 320x320, frame: 1920x1080)
             int left = static_cast<int>((cx - w/2) * frame.cols / input_port.get_shape()[3]);
             int top = static_cast<int>((cy - h/2) * frame.rows / input_port.get_shape()[2]);
             int width = static_cast<int>(w * frame.cols / input_port.get_shape()[3]);
             int height = static_cast<int>(h * frame.rows / input_port.get_shape()[2]);
-            detections.push_back({cv::Rect(left, top, width, height), classId, maxScore * conf});
+            detections.push_back({cv::Rect(left, top, width, height), class_id, conf});
             detected++;
         }
 
@@ -169,15 +173,17 @@ public:
         config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder});
         auto& streamConfig = config->at(0);
         streamConfig.size = libcamera::Size(1920, 1080);
-        streamConfig.pixelFormat = libcamera::formats::BGR888;
+        // RGB888로 설정 시도
+        streamConfig.pixelFormat = libcamera::formats::RGB888;
         streamConfig.bufferCount = 4;
         config->validate();
         if (camera->configure(config.get())) {
-            std::cout << "카메라 설정 실패" << std::endl;
+            std::cout << "카메라 설정 실패 (RGB888 미지원일 수 있음)" << std::endl;
             return false;
         }
+        std::cout << "카메라 설정 완료: " << streamConfig.size.width << "x" << streamConfig.size.height
+                  << ", 포맷: " << streamConfig.pixelFormat.toString() << std::endl;
         stream = streamConfig.stream();
-        std::cout << "카메라 설정 완료: " << streamConfig.size.width << "x" << streamConfig.size.height << std::endl;
         return setupBuffers();
     }
 

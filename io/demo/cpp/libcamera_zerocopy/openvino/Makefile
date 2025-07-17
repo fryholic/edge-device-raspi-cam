@@ -15,6 +15,10 @@ SOURCE_HEADLESS = zero_copy_openvino_demo_headless.cpp
 TARGET_SORT = zero_copy_openvino_sort_demo
 SOURCE_SORT = zero_copy_openvino_sort_demo.cpp
 
+# YOLO11n 버전
+TARGET_YOLO11N = zero_copy_openvino_yolo11n_demo_headless
+SOURCE_YOLO11N = zero_copy_openvino_yolo11n_demo_headless.cpp
+
 # OpenVINO 설정 (GLIBC 호환 버전)
 OPENVINO_INCLUDE = -I/home/lee/openvino/build/install/usr/local/runtime/include
 OPENVINO_LIBS = -L/home/lee/openvino/build/install/usr/local/runtime/lib/aarch64 -lopenvino
@@ -54,9 +58,15 @@ $(TARGET_HEADLESS): $(SOURCE_HEADLESS)
 zero_copy_openvino_sort_demo: zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o zero_copy_openvino_sort_demo zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
 
+# YOLO11n 버전 빌드
+yolo11n: $(TARGET_YOLO11N)
+
+$(TARGET_YOLO11N): $(SOURCE_YOLO11N)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_YOLO11N) $(SOURCE_YOLO11N) $(LIBS_HEADLESS)
+
 # 정리
 clean:
-	rm -f $(TARGET) $(TARGET_HEADLESS)
+	rm -f $(TARGET) $(TARGET_HEADLESS) $(TARGET_YOLO11N)
 
 
 # 실행
@@ -70,6 +80,10 @@ run-headless: $(TARGET_HEADLESS)
 # SORT 통합 버전 실행
 run-sort: zero_copy_openvino_sort_demo
 	./zero_copy_openvino_sort_demo
+
+# YOLO11n 버전 실행
+run-yolo11n: $(TARGET_YOLO11N)
+	./$(TARGET_YOLO11N)
 
 # 디버그 빌드
 debug: CXXFLAGS += -DDEBUG -g3
@@ -97,12 +111,14 @@ help:
 	@echo "Available targets:"
 	@echo "  all        - Build the project (default)"
 	@echo "  headless   - Build headless version (no GUI)"
+	@echo "  yolo11n    - Build YOLO11n version (headless)"
 	@echo "  clean      - Remove built files"
 	@echo "  run        - Build and run the program"
 	@echo "  run-headless - Build and run the headless version"
+	@echo "  run-yolo11n - Build and run the YOLO11n version"
 	@echo "  debug      - Build with debug information"
 	@echo "  check-deps - Check if all dependencies are available"
 	@echo "  install-system - Build using system-installed OpenVINO"
 	@echo "  help       - Show this help message"
 
-.PHONY: all headless clean run run-headless debug check-deps install-system help
+.PHONY: all headless yolo11n clean run run-headless run-yolo11n debug check-deps install-system help

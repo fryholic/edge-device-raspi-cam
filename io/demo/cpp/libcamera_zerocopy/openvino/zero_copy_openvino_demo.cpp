@@ -169,7 +169,7 @@ public:
         config = camera->generateConfiguration({libcamera::StreamRole::Viewfinder});
         auto& streamConfig = config->at(0);
         streamConfig.size = libcamera::Size(1920, 1080);
-        streamConfig.pixelFormat = libcamera::formats::BGR888;
+        streamConfig.pixelFormat = libcamera::formats::RGB888;
         streamConfig.bufferCount = 4;
         config->validate();
         if (camera->configure(config.get())) {

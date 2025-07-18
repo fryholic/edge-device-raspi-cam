@@ -19,6 +19,18 @@ SOURCE_SORT = zero_copy_openvino_sort_demo.cpp
 TARGET_YOLO11N = zero_copy_openvino_yolo11n_demo_headless
 SOURCE_YOLO11N = zero_copy_openvino_yolo11n_demo_headless.cpp
 
+# openVION 방식 v2 버전
+TARGET_V2 = zero_copy_openvino_demo_headless_v2
+SOURCE_V2 = zero_copy_openvino_demo_headless_v2.cpp
+
+# YOLOv5 버전 (mainv5.cpp 로직 적용)
+TARGET_V5 = zero_copy_openvino_demo_headless_v5
+SOURCE_V5 = zero_copy_openvino_demo_headless_v5.cpp
+
+# YOLOv5 + SORT 트래킹 버전
+TARGET_V5_TRACKING = zero_copy_openvino_yolov5_tracking_demo
+SOURCE_V5_TRACKING = zero_copy_openvino_yolov5_tracking_demo.cpp
+
 # OpenVINO 설정 (GLIBC 호환 버전)
 OPENVINO_INCLUDE = -I/home/lee/openvino/build/install/usr/local/runtime/include
 OPENVINO_LIBS = -L/home/lee/openvino/build/install/usr/local/runtime/lib/aarch64 -lopenvino
@@ -26,7 +38,7 @@ OPENVINO_LIBS = -L/home/lee/openvino/build/install/usr/local/runtime/lib/aarch64
 # OpenCV 설정 (헤드리스 버전은 highgui 제외)
 OPENCV_INCLUDE = -I/usr/local/include/opencv4
 OPENCV_LIBS = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs
-OPENCV_LIBS_HEADLESS = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_imgcodecs
+OPENCV_LIBS_HEADLESS = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_imgcodecs -lopencv_dnn
 
 # libcamera 설정
 LIBCAMERA_INCLUDE = -I/usr/include/libcamera
@@ -54,6 +66,24 @@ headless: $(TARGET_HEADLESS)
 $(TARGET_HEADLESS): $(SOURCE_HEADLESS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_HEADLESS) $(SOURCE_HEADLESS) $(LIBS_HEADLESS)
 
+# openVION 방식 v2 버전 빌드
+v2: $(TARGET_V2)
+
+$(TARGET_V2): $(SOURCE_V2)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V2) $(SOURCE_V2) $(LIBS_HEADLESS)
+
+# YOLOv5 버전 빌드 (mainv5.cpp 로직 적용)
+v5: $(TARGET_V5)
+
+$(TARGET_V5): $(SOURCE_V5)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5) $(SOURCE_V5) $(LIBS_HEADLESS)
+
+# YOLOv5 + SORT 트래킹 버전 빌드
+v5-tracking: $(TARGET_V5_TRACKING)
+
+$(TARGET_V5_TRACKING): $(SOURCE_V5_TRACKING) sort.cpp kalman_tracker.cpp object_tracker.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_TRACKING) $(SOURCE_V5_TRACKING) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
+
 # SORT 통합 버전 빌드
 zero_copy_openvino_sort_demo: zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o zero_copy_openvino_sort_demo zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
@@ -66,7 +96,7 @@ $(TARGET_YOLO11N): $(SOURCE_YOLO11N)
 
 # 정리
 clean:
-	rm -f $(TARGET) $(TARGET_HEADLESS) $(TARGET_YOLO11N)
+	rm -f $(TARGET) $(TARGET_HEADLESS) $(TARGET_YOLO11N) $(TARGET_V2) $(TARGET_V5) $(TARGET_V5_TRACKING) zero_copy_openvino_sort_demo
 
 
 # 실행
@@ -84,6 +114,18 @@ run-sort: zero_copy_openvino_sort_demo
 # YOLO11n 버전 실행
 run-yolo11n: $(TARGET_YOLO11N)
 	./$(TARGET_YOLO11N)
+
+# openVION 방식 v2 버전 실행
+run-v2: $(TARGET_V2)
+	./$(TARGET_V2)
+
+# YOLOv5 버전 실행 (mainv5.cpp 로직 적용)
+run-v5: $(TARGET_V5)
+	./$(TARGET_V5)
+
+# YOLOv5 + SORT 트래킹 버전 실행
+run-v5-tracking: $(TARGET_V5_TRACKING)
+	./$(TARGET_V5_TRACKING)
 
 # 디버그 빌드
 debug: CXXFLAGS += -DDEBUG -g3
@@ -112,13 +154,19 @@ help:
 	@echo "  all        - Build the project (default)"
 	@echo "  headless   - Build headless version (no GUI)"
 	@echo "  yolo11n    - Build YOLO11n version (headless)"
+	@echo "  v2         - Build openVION-based v2 version (headless)"
+	@echo "  v5         - Build YOLOv5 version (mainv5.cpp logic, headless)"
+	@echo "  v5-tracking - Build YOLOv5 + SORT tracking version (headless)"
 	@echo "  clean      - Remove built files"
 	@echo "  run        - Build and run the program"
 	@echo "  run-headless - Build and run the headless version"
 	@echo "  run-yolo11n - Build and run the YOLO11n version"
+	@echo "  run-v2     - Build and run the openVION-based v2 version"
+	@echo "  run-v5     - Build and run the YOLOv5 version (mainv5.cpp logic)"
+	@echo "  run-v5-tracking - Build and run the YOLOv5 + SORT tracking version"
 	@echo "  debug      - Build with debug information"
 	@echo "  check-deps - Check if all dependencies are available"
 	@echo "  install-system - Build using system-installed OpenVINO"
 	@echo "  help       - Show this help message"
 
-.PHONY: all headless yolo11n clean run run-headless run-yolo11n debug check-deps install-system help
+.PHONY: all headless yolo11n v2 v5 v5-tracking clean run run-headless run-yolo11n run-v2 run-v5 run-v5-tracking debug check-deps install-system help

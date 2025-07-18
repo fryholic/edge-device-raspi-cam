@@ -7,6 +7,17 @@
 #include <opencv2/opencv.hpp>
 #include <openvino/openvino.hpp> // OpenVINO 헤더 (경로는 환경에 맞게 수정)
 #include <sys/mman.h>
+#include <algorithm>
+
+// sigmoid_clip 함수 추가 (더 보수적 클리핑 적용)
+float sigmoid_clip(float x, float min_val = 1e-7f, float max_val = 0.999f) {
+    // 매우 큰 값은 미리 클리핑 (raw 값이 10 이상이면 의심스러움)
+    if (x > 10.0f) x = 10.0f;
+    if (x < -10.0f) x = -10.0f;
+    
+    float sigmoid_val = 1.0f / (1.0f + expf(-x));
+    return std::max(min_val, std::min(max_val, sigmoid_val));
+}
 
 #include <libcamera/libcamera.h>
 #include <libcamera/framebuffer.h>
@@ -15,38 +26,81 @@
 #include <libcamera/controls.h>
 #include <libcamera/stream.h>
 
+// Detection 구조체를 전역으로 이동
+struct Detection {
+    cv::Rect bbox;
+    int class_id;
+    float confidence;
+};
+
+// NMS 함수 추가 (YOLOv5 코드에서 가져옴)
+float iou(const cv::Rect& a, const cv::Rect& b) {
+    float inter = (a & b).area();
+    float uni = a.area() + b.area() - inter;
+    return inter / uni;
+}
+
+std::vector<Detection> nms(const std::vector<Detection>& dets, float iou_threshold = 0.45f) {
+    std::vector<Detection> res;
+    std::vector<bool> suppressed(dets.size(), false);
+    for (size_t i = 0; i < dets.size(); ++i) {
+        if (suppressed[i]) continue;
+        res.push_back(dets[i]);
+        for (size_t j = i + 1; j < dets.size(); ++j) {
+            if (suppressed[j]) continue;
+            if (dets[i].class_id == dets[j].class_id &&
+                iou(dets[i].bbox, dets[j].bbox) > iou_threshold) {
+                suppressed[j] = true;
+            }
+        }
+    }
+    return res;
+}
+
 // --- OpenVINO YOLO 추론 클래스 (mainv11.cpp에서 복사/수정) ---
 class OpenVINOYOLO {
 public:
     OpenVINOYOLO(const std::string& model_xml, const std::string& device = "CPU") {
         core = std::make_shared<ov::Core>();
         model = core->read_model(model_xml);
-        compiled_model = core->compile_model(model, device);
+        ov::AnyMap compile_options;
+        compile_options["INFERENCE_PRECISION_HINT"] = "f16";
+        compiled_model = core->compile_model(model, device, compile_options);
         infer_request = compiled_model.create_infer_request();
         input_port = compiled_model.input();
         output_port = compiled_model.outputs()[0]; // 첫 번째 출력 사용
         
         std::cout << "OpenVINO YOLO 모델 초기화 완료" << std::endl;
         std::cout << "입력 크기: " << input_port.get_shape()[3] << "x" << input_port.get_shape()[2] << std::endl;
+        // === FP16 최적화 디버그 출력 ===
+        std::cout << "[디버그] 입력 tensor 타입: " << input_port.get_element_type() << std::endl;
+        std::cout << "[디버그] 출력 tensor 타입: " << output_port.get_element_type() << std::endl;
+        try {
+            std::cout << "[디버그] 사용 디바이스: " << compiled_model.get_property(ov::device::full_name) << std::endl;
+        } catch (...) {
+            std::cout << "[디버그] 사용 디바이스 정보 조회 실패" << std::endl;
+        }
+        std::cout << "[디버그] 레이어별 출력 타입 정보:" << std::endl;
+        for (const auto& op : model->get_ops()) {
+            std::cout << "  레이어: " << op->get_friendly_name()
+                      << ", 타입: " << op->get_type_name()
+                      << ", 출력 타입: " << op->get_output_element_type(0) << std::endl;
+        }
     }
 
     // YOLO 추론 (cv::Mat 입력)
-    struct Detection {
-        cv::Rect bbox;
-        int class_id;
-        float confidence;
-    };
     std::vector<Detection> detections;
 
     void infer(const cv::Mat& frame) {
         static bool first_infer = true;
         auto start_time = std::chrono::steady_clock::now();
         
-        // 전처리: 모델에 맞게 수정 (BGR → RGB)
+        // 입력 크기 자동 추출
+        int input_w = input_port.get_shape()[3];
+        int input_h = input_port.get_shape()[2];
         cv::Mat resized;
-        cv::resize(frame, resized, cv::Size(input_port.get_shape()[3], input_port.get_shape()[2]));
+        cv::resize(frame, resized, cv::Size(input_w, input_h));
         resized.convertTo(resized, CV_32F, 1.0 / 255);
-        // RGB888이므로 cv::cvtColor 불필요
 
         auto preprocess_time = std::chrono::steady_clock::now();
 
@@ -61,37 +115,111 @@ public:
         const ov::Shape& shape = output.get_shape();
         // YOLOv5 후처리 (output shape: [1, 84, 2100], 0~3: bbox, 4: objectness, 5~: class score)
         detections.clear();
+        // output shape: [1, 84, 2100]
         size_t numBatch = shape[0]; // 1
         size_t numFeature = shape[1]; // 84
         size_t numDet = shape[2]; // 2100
         int detected = 0;
+        
+        // 최초 1회 bbox raw 값 출력 + 디버그: 최초 10개 detection raw 값 출력
+        static bool first_bbox_output = true;
+        if (first_bbox_output) {
+            std::cout << "[bbox raw 값 예시 (첫 3개 detection)]:" << std::endl;
+            for (int i = 0; i < 3; ++i) {
+                float cx = data[numFeature * i + 0];
+                float cy = data[numFeature * i + 1];
+                float w  = data[numFeature * i + 2];
+                float h  = data[numFeature * i + 3];
+                float obj_conf_raw = data[numFeature * i + 4];
+                float cls_score_raw = data[numFeature * i + 5];
+                std::cout << "  Detection " << i << ": cx=" << cx << ", cy=" << cy 
+                         << ", w=" << w << ", h=" << h 
+                         << ", obj_conf_raw=" << obj_conf_raw 
+                         << ", cls_score_raw=" << cls_score_raw << std::endl;
+            }
+            
+            // 객체 신뢰도 분포 분석
+            std::cout << "[디버그] 객체 신뢰도 분포 분석:" << std::endl;
+            std::vector<float> conf_values;
+            std::vector<float> sigmoid_conf_values;
+            for (size_t i = 0; i < std::min((size_t)100, numDet); ++i) {
+                float raw_conf = data[numFeature * i + 4];
+                float sigmoid_conf = sigmoid_clip(raw_conf);
+                conf_values.push_back(raw_conf);
+                sigmoid_conf_values.push_back(sigmoid_conf);
+            }
+            std::sort(conf_values.begin(), conf_values.end(), std::greater<float>());
+            std::sort(sigmoid_conf_values.begin(), sigmoid_conf_values.end(), std::greater<float>());
+            
+            std::cout << "  상위 10개 raw 신뢰도: ";
+            for (int i = 0; i < std::min(10, (int)conf_values.size()); ++i) {
+                std::cout << std::fixed << std::setprecision(3) << conf_values[i] << " ";
+            }
+            std::cout << std::endl;
+            
+            std::cout << "  상위 10개 sigmoid 신뢰도: ";
+            for (int i = 0; i < std::min(10, (int)sigmoid_conf_values.size()); ++i) {
+                std::cout << std::fixed << std::setprecision(3) << sigmoid_conf_values[i] << " ";
+            }
+            std::cout << std::endl;
+            
+            first_bbox_output = false;
+        }
+        
         for (size_t i = 0; i < numDet; ++i) {
             float cx = data[numFeature * i + 0];
             float cy = data[numFeature * i + 1];
             float w  = data[numFeature * i + 2];
             float h  = data[numFeature * i + 3];
-            float obj_conf = 1.0f / (1.0f + expf(-data[numFeature * i + 4])); // sigmoid
-            if (obj_conf < 0.3f) continue;
+            
+            // Raw 값 체크 - 극단적인 값만 필터링 (조건 완화)
+            float obj_conf_raw = data[numFeature * i + 4];
+            if (obj_conf_raw > 100.0f) continue; // 100 이상만 필터링 (50에서 완화)
+            
+            float obj_conf = sigmoid_clip(obj_conf_raw);
+            if (obj_conf < 0.3f) continue; // threshold를 0.3으로 완화 (0.5에서 하향)
+            
             // class score
             float max_cls = 0.0f;
             int class_id = -1;
             for (int c = 5; c < (int)numFeature; ++c) {
-                float cls_score = 1.0f / (1.0f + expf(-data[numFeature * i + c])); // sigmoid
+                float cls_score_raw = data[numFeature * i + c];
+                if (cls_score_raw > 100.0f) continue; // raw 값 체크도 완화
+                
+                float cls_score = sigmoid_clip(cls_score_raw);
                 if (cls_score > max_cls) {
                     max_cls = cls_score;
                     class_id = c - 5;
                 }
             }
+            
+            // max_cls 검증 조건 완화
+            if (max_cls > 0.999f) continue; // 0.95에서 0.999로 완화
+            
             float conf = obj_conf * max_cls;
-            if (conf < 0.3f) continue;
-            // bbox 변환 (input shape: 320x320, frame: 1920x1080)
-            int left = static_cast<int>((cx - w/2) * frame.cols / input_port.get_shape()[3]);
-            int top = static_cast<int>((cy - h/2) * frame.rows / input_port.get_shape()[2]);
-            int width = static_cast<int>(w * frame.cols / input_port.get_shape()[3]);
-            int height = static_cast<int>(h * frame.rows / input_port.get_shape()[2]);
-            detections.push_back({cv::Rect(left, top, width, height), class_id, conf});
-            detected++;
+            if (conf < 0.3f) continue; // confidence threshold를 0.3으로 완화
+            
+            // 특정 클래스만 허용 (person = class_id 0만 허용)
+            if (class_id != 0) continue; // person 클래스가 아니면 스킵
+            
+            // bbox 변환 (0~input_w 입력 해상도 → frame 해상도)
+            int left = static_cast<int>((cx - w/2) * frame.cols / input_w);
+            int top = static_cast<int>((cy - h/2) * frame.rows / input_h);
+            int width = static_cast<int>(w * frame.cols / input_w);
+            int height = static_cast<int>(h * frame.rows / input_h);
+            
+            // 유효한 바운딩 박스인지 확인
+            if (width > 0 && height > 0 && left >= 0 && top >= 0 && 
+                left + width <= frame.cols && top + height <= frame.rows) {
+                detections.push_back({cv::Rect(left, top, width, height), class_id, conf});
+                detected++;
+            }
         }
+        
+        // NMS 적용 (더 엄격한 IoU threshold)
+        auto nms_results = nms(detections, 0.4f); // 0.3에서 0.4로 조정
+        detections = nms_results;
+        detected = detections.size();
 
         auto end_time = std::chrono::steady_clock::now();
 
@@ -107,9 +235,20 @@ public:
             std::cout << "감지된 객체 수: " << detected << std::endl;
             std::cout << "추론 시간 - 전처리: " << preprocess_ms << "ms, 추론: " << inference_ms << "ms, 후처리: " << postprocess_ms << "ms, 총: " << total_ms << "ms" << std::endl;
             
+            // 클래스 이름 (예시: COCO 80 클래스, 실제 모델에 맞게 수정)
+            const char* class_names[] = {
+                "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck",
+                "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench",
+                "bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe",
+                "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard",
+                "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
+                "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich",
+                "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", "potted plant",
+                "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave",
+                "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+            };
             for (const auto& det : detections) {
-                const char* class_names[] = {"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck"};
-                const char* class_name = (det.class_id < 8) ? class_names[det.class_id] : "unknown";
+                const char* class_name = (det.class_id < 80) ? class_names[det.class_id] : "unknown";
                 std::cout << "  - " << class_name << " (신뢰도: " << std::fixed << std::setprecision(2) << det.confidence 
                          << ", 위치: " << det.bbox.x << "," << det.bbox.y << "," << det.bbox.width << "," << det.bbox.height << ")" << std::endl;
             }
@@ -294,7 +433,7 @@ void signalHandler(int signal) {
 int main(int argc, char** argv) {
     std::cout << "=== Zero Copy OpenVINO YOLO Demo (Headless) ===" << std::endl;
     
-    std::string model_xml = "/home/lee/Documents/server-raspicam/io/demo/cpp/libcamera_zerocopy/openvino/yolo11n_openvino_model/yolo11n.xml";
+    std::string model_xml = "/home/lee/Documents/server-raspicam/io/demo/cpp/libcamera_zerocopy/openvino/yolo11n_openvino_model/yolo11n_FP16_true.xml";
     
     std::cout << "모델 파일: " << model_xml << std::endl;
     

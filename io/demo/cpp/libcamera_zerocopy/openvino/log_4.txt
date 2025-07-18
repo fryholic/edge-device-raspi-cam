@@ -1,0 +1,1664 @@
+=== Zero Copy OpenVINO YOLO Demo (Headless) ===
+모델 파일: /home/lee/Documents/server-raspicam/io/demo/cpp/libcamera_zerocopy/openvino/yolo11n_openvino_model/yolo11n_FP16_true.xml
+TBB Warning: The number of workers is currently limited to 3. The request for 7 workers is ignored. Further requests for more workers will be silently ignored until the limit changes.
+
+OpenVINO YOLO 모델 초기화 완료
+입력 크기: 320x320
+[디버그] 입력 tensor 타입: f32
+[디버그] 출력 tensor 타입: f32
+[디버그] 사용 디바이스: [디버그] 사용 디바이스 정보 조회 실패
+[디버그] 레이어별 출력 타입 정보:
+  레이어: images, 타입: Parameter, 출력 타입: f32
+  레이어: output0/sink_port_0, 타입: Result, 출력 타입: f32
+  레이어: output0, 타입: Concat, 출력 타입: f32
+  레이어: /model.23/Sigmoid, 타입: Sigmoid, 출력 타입: f32
+  레이어: /model.23/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: onnx::Split_562, 타입: Constant, 출력 타입: i64
+  레이어: Constant_1881, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/Concat_3, 타입: Concat, 출력 타입: f32
+  레이어: /model.23/Reshape_2, 타입: Reshape, 출력 타입: f32
+  레이어: /model.23/Constant_output_0, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/Concat_2, 타입: Concat, 출력 타입: f32
+  레이어: /model.23/cv3.2/cv3.2.2/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1876, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1876_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.2/cv3.2.2/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv3.2.2.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv3.2.2.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.2/cv3.2.1/cv3.2.1.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.2/cv3.2.1/cv3.2.1.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1861, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1861_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.2/cv3.2.1/cv3.2.1.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv3.2.1.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv3.2.1.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.2/cv3.2.1/cv3.2.1.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.2/cv3.2.1/cv3.2.1.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1846, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1846_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.2/cv3.2.1/cv3.2.1.0/conv/Conv/WithoutBiases, 타입: GroupConvolution, 출력 타입: f32
+  레이어: Reshape_1796, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1796_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.2/cv3.2.0/cv3.2.0.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.2/cv3.2.0/cv3.2.0.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1770, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1770_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.2/cv3.2.0/cv3.2.0.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv3.2.0.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv3.2.0.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.2/cv3.2.0/cv3.2.0.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.2/cv3.2.0/cv3.2.0.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1740, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1740_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.2/cv3.2.0/cv3.2.0.0/conv/Conv/WithoutBiases, 타입: GroupConvolution, 출력 타입: f32
+  레이어: Reshape_1690, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1690_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.22/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1666, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1666_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.22.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.22.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.22/m.0/cv3/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.22/m.0/cv3/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1650, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1650_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/cv3/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.22.m.0.cv3.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.22.m.0.cv3.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.22/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.22/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1539, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1539_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.22.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.22.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: onnx::Split_262, 타입: Constant, 출력 타입: i64
+  레이어: Constant_1512, 타입: Constant, 출력 타입: i64
+  레이어: /model.22/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.22/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1432, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1432_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.22.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.22.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.21/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.10/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.10/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_875, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_875_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.10.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.10.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.10/m/m.0/Add_1, 타입: Add, 출력 타입: f32
+  레이어: /model.10/m/m.0/ffn/ffn.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_860, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_860_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/ffn/ffn.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.10.m.0.ffn.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.10.m.0.ffn.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/ffn/ffn.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.10/m/m.0/ffn/ffn.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_845, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_845_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/ffn/ffn.0/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.10.m.0.ffn.0.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.10.m.0.ffn.0.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.10/m/m.0/attn/proj/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_831, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_831_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/attn/proj/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.10.m.0.attn.proj.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.10.m.0.attn.proj.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/attn/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.10/m/m.0/attn/pe/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_811, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_811_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/attn/pe/conv/Conv/WithoutBiases, 타입: GroupConvolution, 출력 타입: f32
+  레이어: Reshape_761, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_761_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/attn/Reshape_2, 타입: Reshape, 출력 타입: f32
+  레이어: /model.10/m/m.0/attn/Constant_3_output_0, 타입: Constant, 출력 타입: i64
+  레이어: /model.10/m/m.0/attn/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: onnx::Split_326, 타입: Constant, 출력 타입: i64
+  레이어: Constant_748, 타입: Constant, 출력 타입: i64
+  레이어: /model.10/m/m.0/attn/Reshape, 타입: Reshape, 출력 타입: f32
+  레이어: /model.10/m/m.0/attn/Constant_output_0, 타입: Constant, 출력 타입: i64
+  레이어: /model.10/m/m.0/attn/qkv/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_745, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_745_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/attn/qkv/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.10.m.0.attn.qkv.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.10.m.0.attn.qkv.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: Constant_732, 타입: Constant, 출력 타입: i64
+  레이어: /model.10/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.10/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_728, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_728_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.10.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.10.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.9/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.9/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_713, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_713_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.9/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.9.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.9.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.9/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.9/m_2/MaxPool, 타입: MaxPool, 출력 타입: f32
+  레이어: /model.9/m_1/MaxPool, 타입: MaxPool, 출력 타입: f32
+  레이어: /model.9/m/MaxPool, 타입: MaxPool, 출력 타입: f32
+  레이어: /model.9/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.9/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_694, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_694_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.9/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.9.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.9.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.8/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_679, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_679_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.8.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.8.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.8/m.0/cv3/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.8/m.0/cv3/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_663, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_663_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/cv3/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.8.m.0.cv3.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.8.m.0.cv3.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.8/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.8/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_583, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_583_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.8.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.8.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: Constant_557, 타입: Constant, 출력 타입: i64
+  레이어: /model.8/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.8/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_553, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_553_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.8.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.8.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.7/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.7/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_538, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_538_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.7/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.7.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.7.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.6/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_523, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_523_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.6.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.6.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.6/m.0/cv3/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.6/m.0/cv3/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_507, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_507_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/cv3/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.6.m.0.cv3.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.6.m.0.cv3.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.6/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.6/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_427, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_427_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.6.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.6.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: onnx::Split_225, 타입: Constant, 출력 타입: i64
+  레이어: Constant_401, 타입: Constant, 출력 타입: i64
+  레이어: /model.6/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.6/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_397, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_397_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.6.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.6.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.5/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.5/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_382, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_382_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.5/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.5.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.5.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.4/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.4/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_367, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_367_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.4/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.4.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.4.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.4/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.4/m.0/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.4/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.4/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_350, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_350_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.4/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.4.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.4.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.4/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.4/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_335, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_335_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.4/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.4.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.4.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.4/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: onnx::Split_205, 타입: Constant, 출력 타입: i64
+  레이어: Constant_322, 타입: Constant, 출력 타입: i64
+  레이어: /model.4/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.4/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_318, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_318_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.4/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.4.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.4.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.3/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.3/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_303, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_303_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.3/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.3.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.3.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.2/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.2/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_288, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_288_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.2/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.2.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.2.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.2/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.2/m.0/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.2/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.2/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_271, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_271_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.2/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.2.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.2.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.2/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.2/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_256, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_256_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.2/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.2.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.2.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.2/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: onnx::Split_185, 타입: Constant, 출력 타입: i64
+  레이어: Constant_243, 타입: Constant, 출력 타입: i64
+  레이어: /model.2/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.2/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_239, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_239_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.2/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.2.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.2.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_224, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_224_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_209, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_209_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.0/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.0.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.0.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/m/m.1/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.6/m.0/m/m.1/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.6/m.0/m/m.1/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_490, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_490_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/m/m.1/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.6.m.0.m.1.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.6.m.0.m.1.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/m/m.1/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.6/m.0/m/m.1/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_475, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_475_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/m/m.1/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.6.m.0.m.1.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.6.m.0.m.1.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/m/m.0/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.6/m.0/m/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.6/m.0/m/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_459, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_459_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/m/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.6.m.0.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.6.m.0.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/m/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.6/m.0/m/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_444, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_444_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/m/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.6.m.0.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.6.m.0.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.6/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_414, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_414_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.6/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.6.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.6.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/m/m.1/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.8/m.0/m/m.1/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.8/m.0/m/m.1/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_646, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_646_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/m/m.1/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.8.m.0.m.1.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.8.m.0.m.1.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/m/m.1/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.8/m.0/m/m.1/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_631, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_631_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/m/m.1/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.8.m.0.m.1.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.8.m.0.m.1.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/m/m.0/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.8/m.0/m/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.8/m.0/m/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_615, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_615_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/m/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.8.m.0.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.8.m.0.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/m/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.8/m.0/m/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_600, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_600_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/m/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.8.m.0.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.8.m.0.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.8/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_570, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_570_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.8/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.8.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.8.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.10/m/m.0/attn/Reshape_1, 타입: Reshape, 출력 타입: f32
+  레이어: /model.10/m/m.0/attn/MatMul_1, 타입: MatMul, 출력 타입: f32
+  레이어: /model.10/m/m.0/attn/Softmax, 타입: Softmax, 출력 타입: f32
+  레이어: /model.10/m/m.0/attn/Mul, 타입: MatMul, 출력 타입: f32
+  레이어: Multiply_5389, 타입: Multiply, 출력 타입: f32
+  레이어: Constant_5411, 타입: Convert, 출력 타입: f32
+  레이어: Constant_5411_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.20/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.20/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1314, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1314_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.20/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.20.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.20.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.19/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.19/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1299, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1299_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.19/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.19.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.19.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.19/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.19/m.0/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.19/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.19/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1266, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1266_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.19/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.19.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.19.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.19/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.19/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1236, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1236_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.19/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.19.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.19.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.19/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: Constant_1222, 타입: Constant, 출력 타입: i64
+  레이어: /model.19/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.19/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1142, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1142_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.19/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.19.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.19.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.18/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.13/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.13/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_942, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_942_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.13/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.13.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.13.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.13/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.13/m.0/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.13/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.13/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_925, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_925_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.13/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.13.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.13.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.13/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.13/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_910, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_910_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.13/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.13.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.13.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.13/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: Constant_897, 타입: Constant, 출력 타입: i64
+  레이어: /model.13/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.13/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_893, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_893_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.13/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.13.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.13.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.12/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.11/Resize, 타입: Interpolate, 출력 타입: f32
+  레이어: /model.11/Constant_output_0, 타입: Constant, 출력 타입: f32
+  레이어: /model.17/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.17/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1024, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1024_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.17/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.17.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.17.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.16/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.16/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1009, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1009_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.16/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.16.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.16.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.16/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.16/m.0/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.16/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.16/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_992, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_992_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.16/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.16.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.16.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.16/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.16/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_977, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_977_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.16/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.16.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.16.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.16/Split, 타입: VariadicSplit, 출력 타입: f32
+  레이어: Constant_964, 타입: Constant, 출력 타입: i64
+  레이어: /model.16/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.16/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_960, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_960_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.16/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.16.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.16.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.15/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.14/Resize, 타입: Interpolate, 출력 타입: f32
+  레이어: /model.22/m.0/m/m.1/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.22/m.0/m/m.1/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.22/m.0/m/m.1/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1633, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1633_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/m/m.1/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.22.m.0.m.1.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.22.m.0.m.1.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/m/m.1/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.22/m.0/m/m.1/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1618, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1618_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/m/m.1/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.22.m.0.m.1.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.22.m.0.m.1.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/m/m.0/Add, 타입: Add, 출력 타입: f32
+  레이어: /model.22/m.0/m/m.0/cv2/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.22/m.0/m/m.0/cv2/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1601, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1601_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/m/m.0/cv2/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.22.m.0.m.0.cv2.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.22.m.0.m.0.cv2.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/m/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.22/m.0/m/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1571, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1571_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/m/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.22.m.0.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.22.m.0.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/cv1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.22/m.0/cv1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1526, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1526_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.22/m.0/cv1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.22.m.0.cv1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.22.m.0.cv1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.2/cv2.2.2/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1787, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1787_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.2/cv2.2.2/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv2.2.2.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv2.2.2.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.2/cv2.2.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv2.2/cv2.2.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1757, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1757_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.2/cv2.2.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv2.2.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv2.2.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.2/cv2.2.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv2.2/cv2.2.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1681, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1681_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.2/cv2.2.0/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv2.2.0.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv2.2.0.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/Reshape_1, 타입: Reshape, 출력 타입: f32
+  레이어: /model.23/Concat_1, 타입: Concat, 출력 타입: f32
+  레이어: /model.23/cv3.1/cv3.1.2/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1586, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1586_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.1/cv3.1.2/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv3.1.2.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv3.1.2.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.1/cv3.1.1/cv3.1.1.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.1/cv3.1.1/cv3.1.1.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1555, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1555_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.1/cv3.1.1/cv3.1.1.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv3.1.1.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv3.1.1.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.1/cv3.1.1/cv3.1.1.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.1/cv3.1.1/cv3.1.1.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1510, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1510_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.1/cv3.1.1/cv3.1.1.0/conv/Conv/WithoutBiases, 타입: GroupConvolution, 출력 타입: f32
+  레이어: Reshape_1460, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1460_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.1/cv3.1.0/cv3.1.0.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.1/cv3.1.0/cv3.1.0.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1419, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1419_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.1/cv3.1.0/cv3.1.0.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv3.1.0.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv3.1.0.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.1/cv3.1.0/cv3.1.0.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.1/cv3.1.0/cv3.1.0.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1386, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1386_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.1/cv3.1.0/cv3.1.0.0/conv/Conv/WithoutBiases, 타입: GroupConvolution, 출력 타입: f32
+  레이어: Reshape_1336, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1336_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.1/cv2.1.2/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1451, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1451_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.1/cv2.1.2/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv2.1.2.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv2.1.2.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.1/cv2.1.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv2.1/cv2.1.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1406, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1406_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.1/cv2.1.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv2.1.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv2.1.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.1/cv2.1.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv2.1/cv2.1.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1327, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1327_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.1/cv2.1.0/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv2.1.0.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv2.1.0.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/Reshape, 타입: Reshape, 출력 타입: f32
+  레이어: /model.23/Concat, 타입: Concat, 출력 타입: f32
+  레이어: /model.23/cv3.0/cv3.0.2/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1281, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1281_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.0/cv3.0.2/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv3.0.2.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv3.0.2.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.0/cv3.0.1/cv3.0.1.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.0/cv3.0.1/cv3.0.1.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1251, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1251_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.0/cv3.0.1/cv3.0.1.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv3.0.1.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv3.0.1.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.0/cv3.0.1/cv3.0.1.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.0/cv3.0.1/cv3.0.1.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1220, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1220_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.0/cv3.0.1/cv3.0.1.0/conv/Conv/WithoutBiases, 타입: GroupConvolution, 출력 타입: f32
+  레이어: Reshape_1170, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1170_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.0/cv3.0.0/cv3.0.0.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.0/cv3.0.0/cv3.0.0.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1129, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1129_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.0/cv3.0.0/cv3.0.0.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv3.0.0.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv3.0.0.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.0/cv3.0.0/cv3.0.0.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv3.0/cv3.0.0/cv3.0.0.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1096, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1096_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv3.0/cv3.0.0/cv3.0.0.0/conv/Conv/WithoutBiases, 타입: GroupConvolution, 출력 타입: f32
+  레이어: Reshape_1046, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1046_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.0/cv2.0.2/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1161, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1161_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.0/cv2.0.2/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv2.0.2.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv2.0.2.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.0/cv2.0.1/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv2.0/cv2.0.1/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1116, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1116_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.0/cv2.0.1/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv2.0.1.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv2.0.1.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.0/cv2.0.0/act/Mul, 타입: Swish, 출력 타입: f32
+  레이어: /model.23/cv2.0/cv2.0.0/conv/Conv, 타입: Add, 출력 타입: f32
+  레이어: Reshape_1037, 타입: Convert, 출력 타입: f32
+  레이어: Reshape_1037_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/cv2.0/cv2.0.0/conv/Conv/WithoutBiases, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.cv2.0.0.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.cv2.0.0.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/Mul_2, 타입: Multiply, 출력 타입: f32
+  레이어: Constant_5413, 타입: Convert, 출력 타입: f32
+  레이어: Constant_5413_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/Concat_4, 타입: Concat, 출력 타입: f32
+  레이어: /model.23/Sub_1, 타입: Subtract, 출력 타입: f32
+  레이어: /model.23/Sub, 타입: Subtract, 출력 타입: f32
+  레이어: /model.23/Slice, 타입: Slice, 출력 타입: f32
+  레이어: /model.23/Constant_3_output_0, 타입: Constant, 출력 타입: i64
+  레이어: Broadcast_1893, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/Mul_output_0, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/Constant_4_output_0, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/dfl/Reshape_1, 타입: Reshape, 출력 타입: f32
+  레이어: /model.23/dfl/Constant_1_output_0, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/dfl/conv/Conv, 타입: Convolution, 출력 타입: f32
+  레이어: model.23.dfl.conv.weight, 타입: Convert, 출력 타입: f32
+  레이어: model.23.dfl.conv.weight_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/dfl/Softmax, 타입: Softmax, 출력 타입: f32
+  레이어: /model.23/dfl/Transpose, 타입: Transpose, 출력 타입: f32
+  레이어: Constant_1885, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/dfl/Reshape, 타입: Reshape, 출력 타입: f32
+  레이어: /model.23/dfl/Constant_output_0, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/Constant_9_output_0, 타입: Convert, 출력 타입: f32
+  레이어: /model.23/Constant_9_output_0_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/Add_1, 타입: Add, 출력 타입: f32
+  레이어: /model.23/Slice_1, 타입: Slice, 출력 타입: f32
+  레이어: Broadcast_1900, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/Mul_1_output_0, 타입: Constant, 출력 타입: i64
+  레이어: /model.23/Constant_10_output_0, 타입: Convert, 출력 타입: f32
+  레이어: /model.23/Constant_10_output_0_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/Div_1, 타입: Multiply, 출력 타입: f32
+  레이어: Constant_5412, 타입: Convert, 출력 타입: f32
+  레이어: Constant_5412_compressed, 타입: Constant, 출력 타입: f16
+  레이어: /model.23/Add_2, 타입: Add, 출력 타입: f32
+카메라 초기화 중...
+[71:08:21.793111692] [970540] [1;32m INFO [1;37mCamera [1;34mcamera_manager.cpp:326 [0mlibcamera v0.5.0+59-d83ff0a4
+[71:08:21.843617227] [970561] [1;33m WARN [1;37mRPiSdn [1;34msdn.cpp:40 [0mUsing legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[71:08:21.847637604] [970561] [1;32m INFO [1;37mRPI [1;34mvc4.cpp:447 [0mRegistered camera /base/soc/i2c0mux/i2c@1/imx219@10 to Unicam device /dev/media4 and ISP device /dev/media0
+[71:08:21.848967168] [970540] [1;32m INFO [1;37mCamera [1;34mcamera.cpp:1205 [0mconfiguring streams: (0) 1920x1080-RGB888
+[71:08:21.849717737] [970561] [1;32m INFO [1;37mRPI [1;34mvc4.cpp:622 [0mSensor: /base/soc/i2c0mux/i2c@1/imx219@10 - Selected sensor format: 1920x1080-SBGGR10_1X10 - Selected unicam format: 1920x1080-pBAA
+카메라 설정 완료: 1920x1080, 포맷: RGB888
+버퍼 설정 중...
+버퍼 설정 완료: 4개 버퍼
+카메라 시작 중...
+캡처 및 OpenVINO 추론 시작...
+실행 중... (Ctrl+C로 종료)
+[bbox raw 값 예시 (첫 3개 detection)]:
+  Detection 0: cx=7.75743, cy=20.4373, w=29.4374, h=41.6811, obj_conf_raw=54.6481, cls_score_raw=61.3932
+  Detection 1: cx=37.4702, cy=41.5831, w=52.8365, h=58.5051, obj_conf_raw=64.218, cls_score_raw=67.0259
+  Detection 2: cx=65.7968, cy=65.8566, w=70.4719, h=82.0677, obj_conf_raw=95.5949, cls_score_raw=104.74
+[디버그] 객체 신뢰도 분포 분석:
+  상위 10개 raw 신뢰도: 304.299 301.638 289.635 287.598 281.455 272.930 269.854 265.745 264.099 261.903 
+  상위 10개 sigmoid 신뢰도: 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 38ms, 추론: 271ms, 후처리: 14ms, 총: 324ms
+  - person (신뢰도: 1.00, 위치: 66,41,317,197)
+  - person (신뢰도: 1.00, 위치: 183,83,422,276)
+  - person (신뢰도: 1.00, 위치: 255,137,639,409)
+  - person (신뢰도: 1.00, 위치: 429,263,1102,648)
+  - vase (신뢰도: 0.98, 위치: 12,4,18,12)
+  - person (신뢰도: 1.00, 위치: 51,29,108,62)
+  - person (신뢰도: 1.00, 위치: 417,200,145,31)
+  - person (신뢰도: 1.00, 위치: 263,151,191,39)
+  - baseball glove (신뢰도: 1.00, 위치: 23,7,36,24)
+  - person (신뢰도: 1.00, 위치: 638,219,261,186)
+  - person (신뢰도: 1.00, 위치: 23,16,59,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 13ms, 추론: 182ms, 후처리: 5ms, 총: 201ms
+  - person (신뢰도: 1.00, 위치: 89,38,330,213)
+  - person (신뢰도: 1.00, 위치: 138,92,473,279)
+  - person (신뢰도: 1.00, 위치: 192,159,691,396)
+  - person (신뢰도: 1.00, 위치: 441,261,1102,646)
+  - vase (신뢰도: 0.97, 위치: 12,4,19,11)
+  - person (신뢰도: 1.00, 위치: 48,27,106,61)
+  - person (신뢰도: 1.00, 위치: 85,48,187,105)
+  - person (신뢰도: 1.00, 위치: 389,189,167,29)
+  - person (신뢰도: 1.00, 위치: 252,121,161,38)
+  - baseball glove (신뢰도: 1.00, 위치: 24,9,38,23)
+  - person (신뢰도: 1.00, 위치: 638,253,281,188)
+  - person (신뢰도: 1.00, 위치: 22,15,59,37)
+===================
+[FPS: 1.8, 추론시간: 204ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 14ms, 추론: 200ms, 후처리: 6ms, 총: 221ms
+  - person (신뢰도: 1.00, 위치: 73,51,332,197)
+  - person (신뢰도: 1.00, 위치: 173,87,436,282)
+  - person (신뢰도: 1.00, 위치: 226,140,667,397)
+  - person (신뢰도: 1.00, 위치: 443,271,1100,642)
+  - baseball glove (신뢰도: 0.98, 위치: 11,4,18,11)
+  - person (신뢰도: 1.00, 위치: 48,27,104,60)
+  - person (신뢰도: 1.00, 위치: 91,49,186,106)
+  - person (신뢰도: 1.00, 위치: 414,199,145,29)
+  - person (신뢰도: 1.00, 위치: 275,112,181,42)
+  - baseball glove (신뢰도: 1.00, 위치: 20,8,36,22)
+  - person (신뢰도: 1.00, 위치: 531,175,244,174)
+  - person (신뢰도: 1.00, 위치: 24,13,57,37)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 13ms, 추론: 190ms, 후처리: 5ms, 총: 209ms
+  - person (신뢰도: 1.00, 위치: 36,55,358,197)
+  - person (신뢰도: 1.00, 위치: 143,85,469,295)
+  - person (신뢰도: 1.00, 위치: 205,135,700,420)
+  - person (신뢰도: 1.00, 위치: 426,260,1080,633)
+  - vase (신뢰도: 0.99, 위치: 13,4,19,12)
+  - person (신뢰도: 1.00, 위치: 47,28,109,61)
+  - person (신뢰도: 1.00, 위치: 90,52,187,106)
+  - person (신뢰도: 1.00, 위치: 441,221,144,30)
+  - person (신뢰도: 1.00, 위치: 286,132,187,46)
+  - baseball glove (신뢰도: 1.00, 위치: 25,8,38,25)
+  - person (신뢰도: 1.00, 위치: 518,216,262,181)
+  - person (신뢰도: 1.00, 위치: 21,13,58,36)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 14ms, 추론: 167ms, 후처리: 5ms, 총: 187ms
+  - person (신뢰도: 1.00, 위치: 74,44,335,208)
+  - person (신뢰도: 1.00, 위치: 172,103,456,283)
+  - person (신뢰도: 1.00, 위치: 327,198,867,513)
+  - person (신뢰도: 1.00, 위치: 540,317,1284,749)
+  - vase (신뢰도: 0.97, 위치: 12,4,19,12)
+  - person (신뢰도: 1.00, 위치: 48,28,108,62)
+  - person (신뢰도: 1.00, 위치: 93,54,188,105)
+  - person (신뢰도: 1.00, 위치: 447,215,419,232)
+  - person (신뢰도: 1.00, 위치: 432,195,138,28)
+  - person (신뢰도: 1.00, 위치: 297,112,162,38)
+  - baseball glove (신뢰도: 1.00, 위치: 24,9,38,23)
+  - person (신뢰도: 1.00, 위치: 22,11,56,36)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 14ms, 추론: 222ms, 후처리: 5ms, 총: 241ms
+  - person (신뢰도: 1.00, 위치: 67,63,337,194)
+  - person (신뢰도: 1.00, 위치: 233,127,641,406)
+  - person (신뢰도: 1.00, 위치: 456,267,1078,636)
+  - baseball glove (신뢰도: 0.97, 위치: 13,4,19,11)
+  - person (신뢰도: 1.00, 위치: 46,27,106,61)
+  - person (신뢰도: 1.00, 위치: 92,52,189,106)
+  - person (신뢰도: 1.00, 위치: 189,108,395,222)
+  - person (신뢰도: 1.00, 위치: 425,191,144,29)
+  - person (신뢰도: 1.00, 위치: 259,127,181,38)
+  - baseball glove (신뢰도: 1.00, 위치: 26,9,38,23)
+  - person (신뢰도: 1.00, 위치: 556,209,293,192)
+  - person (신뢰도: 1.00, 위치: 21,15,60,36)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 15ms, 추론: 278ms, 후처리: 5ms, 총: 299ms
+  - person (신뢰도: 1.00, 위치: 92,29,305,209)
+  - person (신뢰도: 1.00, 위치: 137,77,469,295)
+  - person (신뢰도: 1.00, 위치: 237,142,673,410)
+  - person (신뢰도: 1.00, 위치: 456,271,1092,639)
+  - baseball glove (신뢰도: 0.98, 위치: 12,4,20,12)
+  - person (신뢰도: 1.00, 위치: 51,29,105,59)
+  - person (신뢰도: 1.00, 위치: 387,200,153,28)
+  - person (신뢰도: 1.00, 위치: 238,108,196,40)
+  - baseball glove (신뢰도: 1.00, 위치: 25,8,40,25)
+  - person (신뢰도: 1.00, 위치: 560,216,283,186)
+  - person (신뢰도: 1.00, 위치: 21,12,58,36)
+===================
+[FPS: 4.0, 추론시간: 310ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 20ms, 추론: 384ms, 후처리: 5ms, 총: 410ms
+  - person (신뢰도: 1.00, 위치: 61,51,325,194)
+  - person (신뢰도: 1.00, 위치: 144,85,449,278)
+  - person (신뢰도: 1.00, 위치: 222,138,686,419)
+  - person (신뢰도: 1.00, 위치: 428,263,1098,641)
+  - vase (신뢰도: 0.98, 위치: 14,5,19,12)
+  - person (신뢰도: 1.00, 위치: 49,28,106,61)
+  - person (신뢰도: 1.00, 위치: 409,193,130,28)
+  - person (신뢰도: 1.00, 위치: 240,110,172,40)
+  - baseball glove (신뢰도: 1.00, 위치: 27,10,39,24)
+  - person (신뢰도: 1.00, 위치: 515,203,291,191)
+  - person (신뢰도: 1.00, 위치: 21,11,54,35)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 25ms, 추론: 216ms, 후처리: 19ms, 총: 260ms
+  - person (신뢰도: 1.00, 위치: 49,47,358,208)
+  - person (신뢰도: 1.00, 위치: 148,87,437,282)
+  - person (신뢰도: 1.00, 위치: 229,146,680,418)
+  - person (신뢰도: 1.00, 위치: 443,259,1071,633)
+  - vase (신뢰도: 0.98, 위치: 11,3,20,14)
+  - person (신뢰도: 1.00, 위치: 49,29,110,62)
+  - person (신뢰도: 1.00, 위치: 90,52,192,108)
+  - person (신뢰도: 1.00, 위치: 404,200,156,28)
+  - person (신뢰도: 1.00, 위치: 228,132,207,40)
+  - baseball glove (신뢰도: 1.00, 위치: 22,6,40,28)
+  - person (신뢰도: 1.00, 위치: 657,262,295,186)
+  - person (신뢰도: 1.00, 위치: 21,12,55,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 13ms, 추론: 216ms, 후처리: 5ms, 총: 234ms
+  - person (신뢰도: 1.00, 위치: 41,53,338,192)
+  - person (신뢰도: 1.00, 위치: 132,87,456,290)
+  - person (신뢰도: 1.00, 위치: 251,152,682,415)
+  - person (신뢰도: 1.00, 위치: 454,266,1072,635)
+  - baseball glove (신뢰도: 0.98, 위치: 14,4,18,11)
+  - person (신뢰도: 1.00, 위치: 50,29,108,61)
+  - person (신뢰도: 1.00, 위치: 444,218,134,29)
+  - person (신뢰도: 1.00, 위치: 269,124,183,41)
+  - baseball glove (신뢰도: 1.00, 위치: 30,9,36,22)
+  - person (신뢰도: 1.00, 위치: 608,238,288,189)
+  - person (신뢰도: 1.00, 위치: 25,14,53,33)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 29ms, 추론: 183ms, 후처리: 5ms, 총: 217ms
+  - person (신뢰도: 1.00, 위치: 76,63,343,196)
+  - person (신뢰도: 1.00, 위치: 231,142,679,412)
+  - person (신뢰도: 1.00, 위치: 428,255,1101,647)
+  - baseball glove (신뢰도: 0.98, 위치: 12,4,19,12)
+  - person (신뢰도: 1.00, 위치: 48,27,105,61)
+  - person (신뢰도: 1.00, 위치: 93,51,188,107)
+  - person (신뢰도: 1.00, 위치: 195,108,387,218)
+  - person (신뢰도: 1.00, 위치: 422,212,153,28)
+  - person (신뢰도: 1.00, 위치: 278,107,149,46)
+  - baseball glove (신뢰도: 1.00, 위치: 27,8,38,24)
+  - person (신뢰도: 1.00, 위치: 583,199,273,184)
+  - person (신뢰도: 1.00, 위치: 25,12,50,34)
+===================
+[FPS: 3.3, 추론시간: 219ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 13ms, 추론: 179ms, 후처리: 5ms, 총: 198ms
+  - person (신뢰도: 1.00, 위치: 77,56,343,201)
+  - person (신뢰도: 1.00, 위치: 164,76,445,299)
+  - person (신뢰도: 1.00, 위치: 266,149,636,396)
+  - person (신뢰도: 1.00, 위치: 442,271,1093,643)
+  - baseball glove (신뢰도: 0.98, 위치: 15,5,20,12)
+  - person (신뢰도: 1.00, 위치: 45,27,112,63)
+  - person (신뢰도: 1.00, 위치: 93,53,188,105)
+  - person (신뢰도: 1.00, 위치: 417,194,137,29)
+  - person (신뢰도: 1.00, 위치: 273,106,172,43)
+  - baseball glove (신뢰도: 1.00, 위치: 32,10,39,23)
+  - person (신뢰도: 1.00, 위치: 650,239,252,172)
+  - person (신뢰도: 1.00, 위치: 23,14,57,36)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 17ms, 추론: 182ms, 후처리: 5ms, 총: 205ms
+  - person (신뢰도: 1.00, 위치: 66,31,324,216)
+  - person (신뢰도: 1.00, 위치: 162,63,441,301)
+  - person (신뢰도: 1.00, 위치: 243,146,672,412)
+  - person (신뢰도: 1.00, 위치: 433,270,1111,641)
+  - vase (신뢰도: 0.98, 위치: 12,4,19,12)
+  - person (신뢰도: 1.00, 위치: 44,27,112,65)
+  - person (신뢰도: 1.00, 위치: 93,51,186,106)
+  - person (신뢰도: 1.00, 위치: 423,204,136,28)
+  - person (신뢰도: 1.00, 위치: 249,133,196,38)
+  - baseball glove (신뢰도: 1.00, 위치: 23,8,38,24)
+  - person (신뢰도: 1.00, 위치: 423,164,268,184)
+  - person (신뢰도: 1.00, 위치: 18,12,56,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 14ms, 추론: 199ms, 후처리: 5ms, 총: 219ms
+  - person (신뢰도: 1.00, 위치: 85,67,339,201)
+  - person (신뢰도: 1.00, 위치: 225,128,673,419)
+  - person (신뢰도: 1.00, 위치: 464,264,1087,648)
+  - vase (신뢰도: 0.98, 위치: 12,4,18,11)
+  - person (신뢰도: 1.00, 위치: 49,29,112,64)
+  - person (신뢰도: 1.00, 위치: 86,50,186,106)
+  - person (신뢰도: 1.00, 위치: 195,113,399,219)
+  - person (신뢰도: 1.00, 위치: 409,203,170,30)
+  - person (신뢰도: 1.00, 위치: 232,134,188,39)
+  - baseball glove (신뢰도: 1.00, 위치: 23,9,36,22)
+  - person (신뢰도: 1.00, 위치: 633,230,256,188)
+  - person (신뢰도: 1.00, 위치: 19,13,56,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 13ms, 추론: 152ms, 후처리: 5ms, 총: 170ms
+  - person (신뢰도: 1.00, 위치: 75,48,322,199)
+  - person (신뢰도: 1.00, 위치: 108,93,474,284)
+  - person (신뢰도: 1.00, 위치: 191,145,690,410)
+  - person (신뢰도: 1.00, 위치: 453,265,1091,641)
+  - baseball glove (신뢰도: 0.98, 위치: 21,4,18,11)
+  - person (신뢰도: 1.00, 위치: 48,28,106,60)
+  - person (신뢰도: 1.00, 위치: 423,204,173,29)
+  - person (신뢰도: 1.00, 위치: 251,94,178,40)
+  - baseball glove (신뢰도: 1.00, 위치: 46,8,35,23)
+  - person (신뢰도: 1.00, 위치: 477,168,264,189)
+  - person (신뢰도: 1.00, 위치: 23,10,48,33)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 11ms, 추론: 162ms, 후처리: 5ms, 총: 180ms
+  - person (신뢰도: 1.00, 위치: 63,36,321,205)
+  - person (신뢰도: 1.00, 위치: 130,77,471,301)
+  - person (신뢰도: 1.00, 위치: 243,148,672,403)
+  - person (신뢰도: 1.00, 위치: 433,258,1110,653)
+  - baseball glove (신뢰도: 0.97, 위치: 14,5,18,10)
+  - person (신뢰도: 1.00, 위치: 47,26,106,62)
+  - person (신뢰도: 1.00, 위치: 378,204,180,30)
+  - person (신뢰도: 1.00, 위치: 268,130,207,41)
+  - baseball glove (신뢰도: 1.00, 위치: 29,10,36,21)
+  - person (신뢰도: 1.00, 위치: 616,235,276,184)
+  - person (신뢰도: 1.00, 위치: 22,11,56,36)
+===================
+[FPS: 4.7, 추론시간: 180ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 13
+추론 시간 - 전처리: 13ms, 추론: 146ms, 후처리: 5ms, 총: 164ms
+  - person (신뢰도: 1.00, 위치: 61,41,332,209)
+  - person (신뢰도: 1.00, 위치: 161,89,463,292)
+  - person (신뢰도: 1.00, 위치: 317,190,875,527)
+  - person (신뢰도: 1.00, 위치: 563,324,1275,749)
+  - baseball glove (신뢰도: 0.98, 위치: 13,4,19,13)
+  - person (신뢰도: 1.00, 위치: 48,28,109,62)
+  - person (신뢰도: 1.00, 위치: 89,51,186,104)
+  - person (신뢰도: 1.00, 위치: 456,230,433,237)
+  - person (신뢰도: 1.00, 위치: 381,196,172,30)
+  - person (신뢰도: 1.00, 위치: 252,114,164,43)
+  - baseball glove (신뢰도: 1.00, 위치: 26,7,38,26)
+  - person (신뢰도: 1.00, 위치: 730,270,277,190)
+  - person (신뢰도: 1.00, 위치: 23,12,47,30)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 13
+추론 시간 - 전처리: 12ms, 추론: 165ms, 후처리: 5ms, 총: 182ms
+  - person (신뢰도: 1.00, 위치: 23,46,367,210)
+  - person (신뢰도: 1.00, 위치: 184,122,680,417)
+  - person (신뢰도: 1.00, 위치: 330,216,910,529)
+  - person (신뢰도: 1.00, 위치: 535,325,1288,743)
+  - vase (신뢰도: 0.98, 위치: 12,4,19,12)
+  - person (신뢰도: 1.00, 위치: 49,26,104,62)
+  - person (신뢰도: 1.00, 위치: 84,48,186,106)
+  - person (신뢰도: 1.00, 위치: 188,104,383,218)
+  - person (신뢰도: 1.00, 위치: 357,174,142,29)
+  - person (신뢰도: 1.00, 위치: 270,108,152,40)
+  - baseball glove (신뢰도: 1.00, 위치: 25,8,37,24)
+  - person (신뢰도: 1.00, 위치: 450,176,279,181)
+  - person (신뢰도: 1.00, 위치: 21,13,55,35)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 14ms, 추론: 173ms, 후처리: 5ms, 총: 192ms
+  - person (신뢰도: 1.00, 위치: 76,47,317,196)
+  - person (신뢰도: 1.00, 위치: 168,94,472,292)
+  - person (신뢰도: 1.00, 위치: 302,178,877,530)
+  - person (신뢰도: 1.00, 위치: 560,325,1285,750)
+  - vase (신뢰도: 0.97, 위치: 11,4,18,11)
+  - person (신뢰도: 1.00, 위치: 49,27,103,60)
+  - person (신뢰도: 1.00, 위치: 459,222,426,239)
+  - person (신뢰도: 1.00, 위치: 417,201,146,29)
+  - person (신뢰도: 1.00, 위치: 225,132,201,36)
+  - baseball glove (신뢰도: 1.00, 위치: 20,8,36,23)
+  - person (신뢰도: 1.00, 위치: 13,12,65,40)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 15ms, 추론: 158ms, 후처리: 5ms, 총: 178ms
+  - person (신뢰도: 1.00, 위치: 46,46,319,191)
+  - person (신뢰도: 1.00, 위치: 159,94,461,280)
+  - person (신뢰도: 1.00, 위치: 360,208,868,517)
+  - person (신뢰도: 1.00, 위치: 560,333,1278,735)
+  - baseball glove (신뢰도: 0.97, 위치: 13,5,19,11)
+  - person (신뢰도: 1.00, 위치: 48,27,107,61)
+  - person (신뢰도: 1.00, 위치: 455,211,417,234)
+  - person (신뢰도: 1.00, 위치: 417,199,151,28)
+  - person (신뢰도: 1.00, 위치: 266,110,163,46)
+  - baseball glove (신뢰도: 1.00, 위치: 28,10,38,22)
+  - person (신뢰도: 1.00, 위치: 25,12,50,33)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 132ms, 후처리: 5ms, 총: 149ms
+  - person (신뢰도: 1.00, 위치: 56,51,361,209)
+  - person (신뢰도: 1.00, 위치: 169,90,457,293)
+  - person (신뢰도: 1.00, 위치: 303,211,891,521)
+  - person (신뢰도: 1.00, 위치: 573,317,1249,748)
+  - vase (신뢰도: 0.98, 위치: 13,4,18,11)
+  - person (신뢰도: 1.00, 위치: 47,27,104,58)
+  - person (신뢰도: 1.00, 위치: 90,50,190,107)
+  - person (신뢰도: 1.00, 위치: 458,218,425,236)
+  - person (신뢰도: 1.00, 위치: 388,199,158,29)
+  - person (신뢰도: 1.00, 위치: 280,122,159,37)
+  - baseball glove (신뢰도: 1.00, 위치: 27,8,36,22)
+  - person (신뢰도: 1.00, 위치: 27,16,55,35)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 180ms, 후처리: 5ms, 총: 197ms
+  - person (신뢰도: 1.00, 위치: 75,58,317,181)
+  - person (신뢰도: 1.00, 위치: 134,75,476,296)
+  - person (신뢰도: 1.00, 위치: 208,140,695,413)
+  - person (신뢰도: 1.00, 위치: 448,260,1090,644)
+  - vase (신뢰도: 0.98, 위치: 11,4,18,11)
+  - person (신뢰도: 1.00, 위치: 54,30,105,58)
+  - person (신뢰도: 1.00, 위치: 85,49,183,103)
+  - person (신뢰도: 1.00, 위치: 397,185,152,30)
+  - person (신뢰도: 1.00, 위치: 243,125,189,42)
+  - baseball glove (신뢰도: 1.00, 위치: 20,8,36,23)
+  - person (신뢰도: 1.00, 위치: 603,217,280,188)
+  - person (신뢰도: 1.00, 위치: 19,11,53,33)
+===================
+[FPS: 5.2, 추론시간: 197ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 171ms, 후처리: 5ms, 총: 188ms
+  - person (신뢰도: 1.00, 위치: 42,45,341,198)
+  - person (신뢰도: 1.00, 위치: 168,80,431,289)
+  - person (신뢰도: 1.00, 위치: 250,154,670,404)
+  - person (신뢰도: 1.00, 위치: 446,262,1103,654)
+  - baseball glove (신뢰도: 0.98, 위치: 15,5,21,12)
+  - person (신뢰도: 1.00, 위치: 47,28,108,62)
+  - person (신뢰도: 1.00, 위치: 428,207,143,28)
+  - person (신뢰도: 1.00, 위치: 242,134,201,37)
+  - baseball glove (신뢰도: 1.00, 위치: 32,10,42,25)
+  - person (신뢰도: 1.00, 위치: 632,255,270,186)
+  - person (신뢰도: 1.00, 위치: 120,66,189,105)
+  - person (신뢰도: 1.00, 위치: 14,12,60,37)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 11ms, 추론: 135ms, 후처리: 5ms, 총: 152ms
+  - person (신뢰도: 1.00, 위치: 78,40,311,196)
+  - person (신뢰도: 1.00, 위치: 140,86,457,281)
+  - person (신뢰도: 1.00, 위치: 207,147,701,423)
+  - person (신뢰도: 1.00, 위치: 416,250,1088,640)
+  - baseball glove (신뢰도: 0.98, 위치: 16,4,19,12)
+  - person (신뢰도: 1.00, 위치: 49,28,104,59)
+  - person (신뢰도: 1.00, 위치: 421,201,130,30)
+  - person (신뢰도: 1.00, 위치: 231,114,182,42)
+  - baseball glove (신뢰도: 1.00, 위치: 36,9,38,24)
+  - person (신뢰도: 1.00, 위치: 538,205,259,181)
+  - person (신뢰도: 1.00, 위치: 24,14,53,32)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 148ms, 후처리: 5ms, 총: 164ms
+  - person (신뢰도: 1.00, 위치: 94,77,320,192)
+  - person (신뢰도: 1.00, 위치: 218,144,669,401)
+  - person (신뢰도: 1.00, 위치: 405,265,1121,641)
+  - hair drier (신뢰도: 0.97, 위치: 12,4,18,11)
+  - person (신뢰도: 1.00, 위치: 45,26,106,61)
+  - person (신뢰도: 1.00, 위치: 92,50,181,102)
+  - person (신뢰도: 1.00, 위치: 384,192,163,29)
+  - person (신뢰도: 1.00, 위치: 271,112,158,48)
+  - baseball glove (신뢰도: 1.00, 위치: 25,8,36,23)
+  - person (신뢰도: 1.00, 위치: 210,120,409,221)
+  - person (신뢰도: 1.00, 위치: 593,223,276,195)
+  - person (신뢰도: 1.00, 위치: 24,12,48,31)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 12ms, 추론: 141ms, 후처리: 5ms, 총: 159ms
+  - person (신뢰도: 1.00, 위치: 96,54,312,196)
+  - person (신뢰도: 1.00, 위치: 179,78,451,294)
+  - person (신뢰도: 1.00, 위치: 222,143,691,414)
+  - person (신뢰도: 1.00, 위치: 428,272,1099,635)
+  - vase (신뢰도: 0.97, 위치: 12,4,19,12)
+  - person (신뢰도: 1.00, 위치: 48,27,104,59)
+  - person (신뢰도: 1.00, 위치: 408,189,146,28)
+  - person (신뢰도: 1.00, 위치: 223,100,164,41)
+  - baseball glove (신뢰도: 1.00, 위치: 24,8,38,24)
+  - person (신뢰도: 1.00, 위치: 539,214,272,181)
+  - person (신뢰도: 1.00, 위치: 24,10,54,37)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 13
+추론 시간 - 전처리: 12ms, 추론: 151ms, 후처리: 5ms, 총: 169ms
+  - person (신뢰도: 1.00, 위치: 83,74,336,183)
+  - person (신뢰도: 1.00, 위치: 176,93,445,283)
+  - person (신뢰도: 1.00, 위치: 296,190,908,540)
+  - person (신뢰도: 1.00, 위치: 549,315,1287,752)
+  - vase (신뢰도: 0.98, 위치: 11,4,18,12)
+  - person (신뢰도: 1.00, 위치: 44,27,105,59)
+  - person (신뢰도: 1.00, 위치: 89,52,184,103)
+  - person (신뢰도: 1.00, 위치: 450,234,442,241)
+  - person (신뢰도: 1.00, 위치: 404,178,168,25)
+  - person (신뢰도: 1.00, 위치: 273,112,161,42)
+  - baseball glove (신뢰도: 1.00, 위치: 18,7,37,24)
+  - person (신뢰도: 1.00, 위치: 524,192,260,174)
+  - person (신뢰도: 1.00, 위치: 23,13,52,33)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 152ms, 후처리: 5ms, 총: 169ms
+  - person (신뢰도: 1.00, 위치: 68,50,340,203)
+  - person (신뢰도: 1.00, 위치: 238,143,666,408)
+  - person (신뢰도: 1.00, 위치: 453,268,1069,631)
+  - vase (신뢰도: 0.98, 위치: 12,4,19,12)
+  - person (신뢰도: 1.00, 위치: 47,27,106,61)
+  - person (신뢰도: 1.00, 위치: 93,53,190,107)
+  - person (신뢰도: 1.00, 위치: 194,109,379,214)
+  - person (신뢰도: 1.00, 위치: 424,206,139,26)
+  - person (신뢰도: 1.00, 위치: 264,96,147,49)
+  - baseball glove (신뢰도: 1.00, 위치: 25,8,38,24)
+  - person (신뢰도: 1.00, 위치: 541,211,289,183)
+  - person (신뢰도: 1.00, 위치: 25,11,48,32)
+===================
+[FPS: 5.5, 추론시간: 169ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 12ms, 추론: 156ms, 후처리: 5ms, 총: 175ms
+  - person (신뢰도: 1.00, 위치: 68,69,346,185)
+  - person (신뢰도: 1.00, 위치: 206,140,688,401)
+  - person (신뢰도: 1.00, 위치: 444,278,1101,645)
+  - baseball glove (신뢰도: 0.98, 위치: 10,4,19,12)
+  - person (신뢰도: 1.00, 위치: 50,27,104,60)
+  - person (신뢰도: 1.00, 위치: 95,52,188,104)
+  - person (신뢰도: 1.00, 위치: 197,107,380,216)
+  - person (신뢰도: 1.00, 위치: 411,199,143,26)
+  - person (신뢰도: 1.00, 위치: 246,112,164,40)
+  - baseball glove (신뢰도: 1.00, 위치: 17,7,38,24)
+  - person (신뢰도: 1.00, 위치: 548,204,268,189)
+  - person (신뢰도: 1.00, 위치: 24,14,54,35)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 140ms, 후처리: 5ms, 총: 157ms
+  - person (신뢰도: 1.00, 위치: 74,57,337,197)
+  - person (신뢰도: 1.00, 위치: 138,89,474,287)
+  - person (신뢰도: 1.00, 위치: 335,197,890,532)
+  - person (신뢰도: 1.00, 위치: 548,325,1291,748)
+  - vase (신뢰도: 0.98, 위치: 11,3,18,12)
+  - person (신뢰도: 1.00, 위치: 48,27,106,60)
+  - person (신뢰도: 1.00, 위치: 88,52,187,104)
+  - person (신뢰도: 1.00, 위치: 455,216,411,225)
+  - person (신뢰도: 1.00, 위치: 399,201,176,31)
+  - person (신뢰도: 1.00, 위치: 271,105,152,49)
+  - baseball glove (신뢰도: 1.00, 위치: 22,6,36,25)
+  - person (신뢰도: 1.00, 위치: 25,15,54,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 13
+추론 시간 - 전처리: 12ms, 추론: 164ms, 후처리: 5ms, 총: 181ms
+  - person (신뢰도: 1.00, 위치: 72,50,343,198)
+  - person (신뢰도: 1.00, 위치: 168,102,435,278)
+  - person (신뢰도: 1.00, 위치: 355,202,879,519)
+  - person (신뢰도: 1.00, 위치: 520,313,1285,749)
+  - vase (신뢰도: 0.98, 위치: 27,4,18,11)
+  - person (신뢰도: 1.00, 위치: 52,29,110,62)
+  - person (신뢰도: 1.00, 위치: 287,160,582,331)
+  - person (신뢰도: 1.00, 위치: 411,201,147,29)
+  - person (신뢰도: 1.00, 위치: 263,131,183,47)
+  - baseball glove (신뢰도: 1.00, 위치: 55,9,37,23)
+  - person (신뢰도: 1.00, 위치: 469,177,271,183)
+  - person (신뢰도: 1.00, 위치: 114,74,200,99)
+  - person (신뢰도: 1.00, 위치: 27,13,52,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 11ms, 추론: 163ms, 후처리: 6ms, 총: 181ms
+  - person (신뢰도: 1.00, 위치: 84,43,304,201)
+  - person (신뢰도: 1.00, 위치: 165,86,471,297)
+  - person (신뢰도: 1.00, 위치: 224,151,686,401)
+  - person (신뢰도: 1.00, 위치: 452,256,1098,651)
+  - baseball glove (신뢰도: 0.98, 위치: 14,4,19,12)
+  - person (신뢰도: 1.00, 위치: 48,29,106,60)
+  - person (신뢰도: 1.00, 위치: 390,216,156,30)
+  - person (신뢰도: 1.00, 위치: 263,133,182,42)
+  - baseball glove (신뢰도: 1.00, 위치: 28,9,37,23)
+  - person (신뢰도: 1.00, 위치: 594,207,292,194)
+  - person (신뢰도: 1.00, 위치: 19,13,56,35)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 12ms, 추론: 133ms, 후처리: 5ms, 총: 151ms
+  - person (신뢰도: 1.00, 위치: 78,54,324,200)
+  - person (신뢰도: 1.00, 위치: 165,88,465,295)
+  - person (신뢰도: 1.00, 위치: 303,189,894,529)
+  - person (신뢰도: 1.00, 위치: 528,308,1295,756)
+  - baseball glove (신뢰도: 0.98, 위치: 12,4,18,11)
+  - person (신뢰도: 1.00, 위치: 52,29,106,61)
+  - person (신뢰도: 1.00, 위치: 470,225,415,229)
+  - person (신뢰도: 1.00, 위치: 391,203,154,31)
+  - person (신뢰도: 1.00, 위치: 243,108,176,44)
+  - baseball glove (신뢰도: 1.00, 위치: 26,8,37,23)
+  - person (신뢰도: 1.00, 위치: 18,14,60,35)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 147ms, 후처리: 5ms, 총: 164ms
+  - person (신뢰도: 1.00, 위치: 70,66,331,180)
+  - person (신뢰도: 1.00, 위치: 120,91,485,289)
+  - person (신뢰도: 1.00, 위치: 223,133,661,409)
+  - person (신뢰도: 1.00, 위치: 443,278,1097,632)
+  - vase (신뢰도: 0.98, 위치: 12,4,18,12)
+  - person (신뢰도: 1.00, 위치: 48,27,105,60)
+  - person (신뢰도: 1.00, 위치: 88,52,191,107)
+  - person (신뢰도: 1.00, 위치: 430,190,140,27)
+  - person (신뢰도: 1.00, 위치: 250,125,186,41)
+  - baseball glove (신뢰도: 1.00, 위치: 23,8,37,24)
+  - person (신뢰도: 1.00, 위치: 502,184,250,174)
+  - person (신뢰도: 1.00, 위치: 18,8,55,38)
+===================
+[FPS: 5.4, 추론시간: 165ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 11ms, 추론: 138ms, 후처리: 5ms, 총: 154ms
+  - person (신뢰도: 1.00, 위치: 68,61,316,180)
+  - person (신뢰도: 1.00, 위치: 158,78,454,291)
+  - person (신뢰도: 1.00, 위치: 239,142,650,391)
+  - person (신뢰도: 1.00, 위치: 441,266,1102,645)
+  - vase (신뢰도: 0.97, 위치: 11,4,18,11)
+  - person (신뢰도: 1.00, 위치: 47,27,106,60)
+  - person (신뢰도: 1.00, 위치: 431,216,132,28)
+  - person (신뢰도: 1.00, 위치: 277,117,169,39)
+  - baseball glove (신뢰도: 1.00, 위치: 24,8,35,22)
+  - person (신뢰도: 1.00, 위치: 598,232,284,185)
+  - person (신뢰도: 1.00, 위치: 27,12,48,31)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 14ms, 추론: 152ms, 후처리: 5ms, 총: 171ms
+  - person (신뢰도: 1.00, 위치: 92,57,310,184)
+  - person (신뢰도: 1.00, 위치: 172,81,450,301)
+  - person (신뢰도: 1.00, 위치: 241,150,689,411)
+  - person (신뢰도: 1.00, 위치: 437,252,1094,656)
+  - vase (신뢰도: 0.98, 위치: 13,4,20,13)
+  - person (신뢰도: 1.00, 위치: 48,27,104,60)
+  - person (신뢰도: 1.00, 위치: 385,177,152,26)
+  - person (신뢰도: 1.00, 위치: 227,114,186,38)
+  - baseball glove (신뢰도: 1.00, 위치: 23,8,40,26)
+  - person (신뢰도: 1.00, 위치: 581,230,307,193)
+  - person (신뢰도: 1.00, 위치: 19,15,64,37)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 12ms, 추론: 175ms, 후처리: 5ms, 총: 193ms
+  - person (신뢰도: 1.00, 위치: 76,34,316,208)
+  - person (신뢰도: 1.00, 위치: 168,82,433,278)
+  - person (신뢰도: 1.00, 위치: 216,139,665,415)
+  - person (신뢰도: 1.00, 위치: 435,255,1082,639)
+  - vase (신뢰도: 0.98, 위치: 11,4,19,12)
+  - person (신뢰도: 1.00, 위치: 47,26,103,60)
+  - person (신뢰도: 1.00, 위치: 415,198,139,28)
+  - person (신뢰도: 1.00, 위치: 239,109,207,44)
+  - baseball glove (신뢰도: 1.00, 위치: 25,8,39,25)
+  - person (신뢰도: 1.00, 위치: 507,189,261,185)
+  - person (신뢰도: 1.00, 위치: 22,12,54,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 31ms, 추론: 250ms, 후처리: 3ms, 총: 285ms
+  - person (신뢰도: 1.00, 위치: 78,39,303,194)
+  - person (신뢰도: 1.00, 위치: 164,86,457,297)
+  - person (신뢰도: 1.00, 위치: 323,198,893,527)
+  - person (신뢰도: 1.00, 위치: 539,308,1283,755)
+  - baseball glove (신뢰도: 0.98, 위치: 14,4,19,11)
+  - person (신뢰도: 1.00, 위치: 50,28,108,61)
+  - person (신뢰도: 1.00, 위치: 460,236,447,241)
+  - person (신뢰도: 1.00, 위치: 398,182,147,27)
+  - person (신뢰도: 1.00, 위치: 249,126,199,47)
+  - baseball glove (신뢰도: 1.00, 위치: 31,9,38,23)
+  - person (신뢰도: 1.00, 위치: 23,17,59,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 10ms, 추론: 102ms, 후처리: 3ms, 총: 116ms
+  - person (신뢰도: 1.00, 위치: 66,43,322,202)
+  - person (신뢰도: 1.00, 위치: 153,80,461,295)
+  - person (신뢰도: 1.00, 위치: 210,150,693,401)
+  - person (신뢰도: 1.00, 위치: 407,269,1102,639)
+  - baseball glove (신뢰도: 0.98, 위치: 12,4,19,12)
+  - person (신뢰도: 1.00, 위치: 50,29,106,60)
+  - person (신뢰도: 1.00, 위치: 404,192,150,28)
+  - person (신뢰도: 1.00, 위치: 239,114,185,36)
+  - baseball glove (신뢰도: 1.00, 위치: 22,9,39,24)
+  - person (신뢰도: 1.00, 위치: 537,204,290,191)
+  - person (신뢰도: 1.00, 위치: 24,14,55,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 11ms, 추론: 125ms, 후처리: 3ms, 총: 139ms
+  - person (신뢰도: 1.00, 위치: 65,52,321,197)
+  - person (신뢰도: 1.00, 위치: 211,140,690,410)
+  - person (신뢰도: 1.00, 위치: 437,253,1079,642)
+  - vase (신뢰도: 0.98, 위치: 12,4,20,12)
+  - person (신뢰도: 1.00, 위치: 51,28,108,61)
+  - person (신뢰도: 1.00, 위치: 194,105,371,210)
+  - person (신뢰도: 1.00, 위치: 357,188,146,30)
+  - person (신뢰도: 1.00, 위치: 289,123,158,38)
+  - baseball glove (신뢰도: 1.00, 위치: 26,8,40,25)
+  - person (신뢰도: 1.00, 위치: 610,205,284,193)
+  - person (신뢰도: 1.00, 위치: 26,14,50,31)
+===================
+[FPS: 5.2, 추론시간: 139ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 14ms, 추론: 119ms, 후처리: 3ms, 총: 138ms
+  - person (신뢰도: 1.00, 위치: 52,46,316,193)
+  - person (신뢰도: 1.00, 위치: 149,91,452,287)
+  - person (신뢰도: 1.00, 위치: 251,152,656,394)
+  - person (신뢰도: 1.00, 위치: 451,268,1081,638)
+  - baseball glove (신뢰도: 0.98, 위치: 15,4,18,11)
+  - person (신뢰도: 1.00, 위치: 45,25,108,63)
+  - person (신뢰도: 1.00, 위치: 420,204,147,28)
+  - person (신뢰도: 1.00, 위치: 267,105,203,42)
+  - baseball glove (신뢰도: 1.00, 위치: 33,9,37,23)
+  - person (신뢰도: 1.00, 위치: 596,207,243,174)
+  - person (신뢰도: 1.00, 위치: 23,11,56,35)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 14ms, 추론: 116ms, 후처리: 3ms, 총: 134ms
+  - person (신뢰도: 1.00, 위치: 61,71,344,190)
+  - person (신뢰도: 1.00, 위치: 150,102,443,277)
+  - person (신뢰도: 1.00, 위치: 247,162,683,407)
+  - person (신뢰도: 1.00, 위치: 448,251,1076,644)
+  - baseball glove (신뢰도: 0.98, 위치: 12,4,19,11)
+  - person (신뢰도: 1.00, 위치: 47,26,105,60)
+  - person (신뢰도: 1.00, 위치: 95,54,194,109)
+  - person (신뢰도: 1.00, 위치: 382,176,139,29)
+  - person (신뢰도: 1.00, 위치: 259,128,213,42)
+  - baseball glove (신뢰도: 1.00, 위치: 25,9,38,23)
+  - person (신뢰도: 1.00, 위치: 700,241,276,190)
+  - person (신뢰도: 1.00, 위치: 21,10,55,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 136ms, 후처리: 3ms, 총: 151ms
+  - person (신뢰도: 1.00, 위치: 51,48,332,199)
+  - person (신뢰도: 1.00, 위치: 122,90,464,287)
+  - person (신뢰도: 1.00, 위치: 229,150,676,402)
+  - person (신뢰도: 1.00, 위치: 452,270,1097,649)
+  - baseball glove (신뢰도: 0.98, 위치: 11,4,20,12)
+  - person (신뢰도: 1.00, 위치: 48,28,107,61)
+  - person (신뢰도: 1.00, 위치: 85,48,185,104)
+  - person (신뢰도: 1.00, 위치: 414,217,137,27)
+  - person (신뢰도: 1.00, 위치: 259,122,185,40)
+  - baseball glove (신뢰도: 1.00, 위치: 21,9,39,25)
+  - person (신뢰도: 1.00, 위치: 510,206,232,174)
+  - person (신뢰도: 1.00, 위치: 24,14,53,33)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 94ms, 후처리: 3ms, 총: 109ms
+  - person (신뢰도: 1.00, 위치: 81,69,349,197)
+  - person (신뢰도: 1.00, 위치: 232,132,655,402)
+  - person (신뢰도: 1.00, 위치: 455,265,1106,653)
+  - vase (신뢰도: 0.98, 위치: 13,4,18,11)
+  - person (신뢰도: 1.00, 위치: 50,29,104,59)
+  - person (신뢰도: 1.00, 위치: 85,50,189,105)
+  - person (신뢰도: 1.00, 위치: 439,224,148,28)
+  - person (신뢰도: 1.00, 위치: 285,122,167,38)
+  - baseball glove (신뢰도: 1.00, 위치: 25,7,35,23)
+  - person (신뢰도: 1.00, 위치: 209,114,394,218)
+  - person (신뢰도: 1.00, 위치: 580,209,237,175)
+  - person (신뢰도: 1.00, 위치: 21,11,57,39)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 9ms, 추론: 106ms, 후처리: 4ms, 총: 120ms
+  - person (신뢰도: 1.00, 위치: 99,39,300,210)
+  - person (신뢰도: 1.00, 위치: 162,78,471,301)
+  - person (신뢰도: 1.00, 위치: 245,141,661,404)
+  - person (신뢰도: 1.00, 위치: 423,265,1099,643)
+  - vase (신뢰도: 0.98, 위치: 12,3,18,12)
+  - person (신뢰도: 1.00, 위치: 47,28,106,60)
+  - person (신뢰도: 1.00, 위치: 89,49,185,106)
+  - person (신뢰도: 1.00, 위치: 434,210,151,29)
+  - person (신뢰도: 1.00, 위치: 235,119,204,40)
+  - baseball glove (신뢰도: 1.00, 위치: 25,7,37,24)
+  - person (신뢰도: 1.00, 위치: 616,215,220,169)
+  - person (신뢰도: 1.00, 위치: 19,11,53,33)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 101ms, 후처리: 3ms, 총: 116ms
+  - person (신뢰도: 1.00, 위치: 50,41,337,204)
+  - person (신뢰도: 1.00, 위치: 156,91,458,284)
+  - person (신뢰도: 1.00, 위치: 211,156,673,394)
+  - person (신뢰도: 1.00, 위치: 454,253,1072,643)
+  - vase (신뢰도: 0.98, 위치: 11,3,19,13)
+  - person (신뢰도: 1.00, 위치: 47,27,108,62)
+  - person (신뢰도: 1.00, 위치: 90,50,188,106)
+  - person (신뢰도: 1.00, 위치: 422,198,143,28)
+  - person (신뢰도: 1.00, 위치: 243,128,197,40)
+  - baseball glove (신뢰도: 1.00, 위치: 22,7,38,26)
+  - person (신뢰도: 1.00, 위치: 601,211,284,196)
+  - person (신뢰도: 1.00, 위치: 22,10,51,33)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 15ms, 추론: 96ms, 후처리: 3ms, 총: 115ms
+  - person (신뢰도: 1.00, 위치: 72,46,326,200)
+  - person (신뢰도: 1.00, 위치: 164,90,428,268)
+  - person (신뢰도: 1.00, 위치: 235,137,671,406)
+  - person (신뢰도: 1.00, 위치: 441,269,1105,649)
+  - vase (신뢰도: 0.97, 위치: 11,4,18,12)
+  - person (신뢰도: 1.00, 위치: 51,27,104,60)
+  - person (신뢰도: 1.00, 위치: 459,217,152,28)
+  - person (신뢰도: 1.00, 위치: 254,123,194,38)
+  - baseball glove (신뢰도: 1.00, 위치: 18,8,37,24)
+  - person (신뢰도: 1.00, 위치: 593,191,224,172)
+  - person (신뢰도: 1.00, 위치: 21,12,59,38)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 9ms, 추론: 109ms, 후처리: 3ms, 총: 122ms
+  - person (신뢰도: 1.00, 위치: 90,60,325,197)
+  - person (신뢰도: 1.00, 위치: 230,140,664,408)
+  - person (신뢰도: 1.00, 위치: 435,261,1090,639)
+  - vase (신뢰도: 0.98, 위치: 14,4,18,11)
+  - person (신뢰도: 1.00, 위치: 47,27,105,60)
+  - person (신뢰도: 1.00, 위치: 88,52,191,107)
+  - person (신뢰도: 1.00, 위치: 192,105,384,220)
+  - person (신뢰도: 1.00, 위치: 421,203,151,28)
+  - person (신뢰도: 1.00, 위치: 212,121,216,36)
+  - baseball glove (신뢰도: 1.00, 위치: 30,8,36,22)
+  - person (신뢰도: 1.00, 위치: 638,219,244,186)
+  - person (신뢰도: 1.00, 위치: 16,9,54,34)
+===================
+[FPS: 7.2, 추론시간: 126ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 10ms, 추론: 98ms, 후처리: 3ms, 총: 112ms
+  - person (신뢰도: 1.00, 위치: 79,58,349,206)
+  - person (신뢰도: 1.00, 위치: 175,87,470,303)
+  - person (신뢰도: 1.00, 위치: 332,198,872,521)
+  - person (신뢰도: 1.00, 위치: 530,317,1282,748)
+  - baseball glove (신뢰도: 0.98, 위치: 12,4,18,11)
+  - person (신뢰도: 1.00, 위치: 51,29,105,59)
+  - person (신뢰도: 1.00, 위치: 91,53,186,104)
+  - person (신뢰도: 1.00, 위치: 465,227,410,223)
+  - person (신뢰도: 1.00, 위치: 447,200,152,30)
+  - person (신뢰도: 1.00, 위치: 249,118,189,38)
+  - baseball glove (신뢰도: 1.00, 위치: 26,8,36,23)
+  - person (신뢰도: 1.00, 위치: 21,9,51,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 12ms, 추론: 111ms, 후처리: 3ms, 총: 127ms
+  - person (신뢰도: 1.00, 위치: 64,43,358,213)
+  - person (신뢰도: 1.00, 위치: 229,148,696,414)
+  - person (신뢰도: 1.00, 위치: 442,261,1097,646)
+  - hair drier (신뢰도: 0.97, 위치: 12,4,18,11)
+  - person (신뢰도: 1.00, 위치: 48,28,106,60)
+  - person (신뢰도: 1.00, 위치: 89,49,186,106)
+  - person (신뢰도: 1.00, 위치: 201,112,384,218)
+  - person (신뢰도: 1.00, 위치: 422,194,159,29)
+  - person (신뢰도: 1.00, 위치: 270,126,190,41)
+  - baseball glove (신뢰도: 1.00, 위치: 25,8,35,23)
+  - person (신뢰도: 1.00, 위치: 582,211,243,175)
+  - person (신뢰도: 1.00, 위치: 25,13,53,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 9ms, 추론: 129ms, 후처리: 3ms, 총: 142ms
+  - person (신뢰도: 1.00, 위치: 47,45,342,198)
+  - person (신뢰도: 1.00, 위치: 153,99,459,285)
+  - person (신뢰도: 1.00, 위치: 227,152,682,402)
+  - person (신뢰도: 1.00, 위치: 445,266,1091,638)
+  - vase (신뢰도: 0.97, 위치: 11,3,18,11)
+  - person (신뢰도: 1.00, 위치: 46,26,104,60)
+  - person (신뢰도: 1.00, 위치: 84,49,183,104)
+  - person (신뢰도: 1.00, 위치: 406,198,143,31)
+  - person (신뢰도: 1.00, 위치: 267,109,179,51)
+  - baseball glove (신뢰도: 1.00, 위치: 24,7,35,23)
+  - person (신뢰도: 1.00, 위치: 586,205,266,183)
+  - person (신뢰도: 1.00, 위치: 23,11,51,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 13
+추론 시간 - 전처리: 13ms, 추론: 95ms, 후처리: 3ms, 총: 111ms
+  - person (신뢰도: 1.00, 위치: 99,73,321,192)
+  - person (신뢰도: 1.00, 위치: 163,100,466,285)
+  - person (신뢰도: 1.00, 위치: 363,207,884,528)
+  - person (신뢰도: 1.00, 위치: 553,316,1272,752)
+  - baseball glove (신뢰도: 0.97, 위치: 15,4,18,11)
+  - person (신뢰도: 1.00, 위치: 47,27,106,61)
+  - person (신뢰도: 1.00, 위치: 88,52,188,106)
+  - person (신뢰도: 1.00, 위치: 294,165,583,327)
+  - person (신뢰도: 1.00, 위치: 427,202,159,28)
+  - person (신뢰도: 1.00, 위치: 274,125,181,37)
+  - baseball glove (신뢰도: 1.00, 위치: 34,9,37,23)
+  - person (신뢰도: 1.00, 위치: 662,197,231,172)
+  - person (신뢰도: 1.00, 위치: 23,17,63,36)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 11
+추론 시간 - 전처리: 10ms, 추론: 121ms, 후처리: 3ms, 총: 136ms
+  - person (신뢰도: 1.00, 위치: 67,22,308,208)
+  - person (신뢰도: 1.00, 위치: 168,89,459,283)
+  - person (신뢰도: 1.00, 위치: 321,210,894,522)
+  - person (신뢰도: 1.00, 위치: 563,321,1281,749)
+  - hair drier (신뢰도: 0.97, 위치: 11,4,18,11)
+  - person (신뢰도: 1.00, 위치: 47,27,106,61)
+  - person (신뢰도: 1.00, 위치: 444,198,400,221)
+  - person (신뢰도: 1.00, 위치: 441,221,140,27)
+  - person (신뢰도: 1.00, 위치: 242,123,195,39)
+  - baseball glove (신뢰도: 1.00, 위치: 23,8,36,23)
+  - person (신뢰도: 1.00, 위치: 19,10,52,35)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 9ms, 추론: 95ms, 후처리: 3ms, 총: 108ms
+  - person (신뢰도: 1.00, 위치: 76,67,330,190)
+  - person (신뢰도: 1.00, 위치: 136,93,487,292)
+  - person (신뢰도: 1.00, 위치: 335,207,877,512)
+  - person (신뢰도: 1.00, 위치: 545,317,1286,750)
+  - baseball glove (신뢰도: 0.98, 위치: 11,3,19,12)
+  - person (신뢰도: 1.00, 위치: 47,27,102,59)
+  - person (신뢰도: 1.00, 위치: 85,50,185,102)
+  - person (신뢰도: 1.00, 위치: 457,217,415,224)
+  - person (신뢰도: 1.00, 위치: 420,194,152,29)
+  - person (신뢰도: 1.00, 위치: 260,123,190,41)
+  - baseball glove (신뢰도: 1.00, 위치: 23,7,38,25)
+  - person (신뢰도: 1.00, 위치: 21,12,54,34)
+===================
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 10ms, 추론: 278ms, 후처리: 3ms, 총: 291ms
+  - person (신뢰도: 1.00, 위치: 81,61,326,198)
+  - person (신뢰도: 1.00, 위치: 175,82,448,291)
+  - person (신뢰도: 1.00, 위치: 229,147,676,400)
+  - person (신뢰도: 1.00, 위치: 459,260,1079,644)
+  - vase (신뢰도: 0.98, 위치: 12,4,19,11)
+  - person (신뢰도: 1.00, 위치: 49,28,106,61)
+  - person (신뢰도: 1.00, 위치: 86,51,190,107)
+  - person (신뢰도: 1.00, 위치: 428,201,140,30)
+  - person (신뢰도: 1.00, 위치: 250,131,178,39)
+  - baseball glove (신뢰도: 1.00, 위치: 25,9,37,23)
+  - person (신뢰도: 1.00, 위치: 562,214,244,168)
+  - person (신뢰도: 1.00, 위치: 23,15,54,32)
+===================
+[FPS: 6.2, 추론시간: 292ms] 프레임 처리 중...
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 10ms, 추론: 148ms, 후처리: 3ms, 총: 162ms
+  - person (신뢰도: 1.00, 위치: 90,61,331,191)
+  - person (신뢰도: 1.00, 위치: 164,93,475,291)
+  - person (신뢰도: 1.00, 위치: 280,187,899,531)
+  - person (신뢰도: 1.00, 위치: 531,315,1280,746)
+  - vase (신뢰도: 0.98, 위치: 10,3,19,12)
+  - person (신뢰도: 1.00, 위치: 49,27,105,61)
+  - person (신뢰도: 1.00, 위치: 91,52,187,105)
+  - person (신뢰도: 1.00, 위치: 471,219,407,222)
+  - person (신뢰도: 1.00, 위치: 452,213,144,30)
+  - person (신뢰도: 1.00, 위치: 282,113,168,42)
+  - baseball glove (신뢰도: 1.00, 위치: 19,7,37,25)
+  - person (신뢰도: 1.00, 위치: 22,13,55,34)
+===================
+
+종료 신호 받음 (Ctrl+C)
+중지 신호 받음...
+=== 객체 감지됨 ===
+감지된 객체 수: 12
+추론 시간 - 전처리: 11ms, 추론: 165ms, 후처리: 3ms, 총: 181ms
+  - person (신뢰도: 1.00, 위치: 86,53,345,212)
+  - person (신뢰도: 1.00, 위치: 205,149,683,401)
+  - person (신뢰도: 1.00, 위치: 449,269,1087,638)
+  - vase (신뢰도: 0.97, 위치: 11,4,18,11)
+  - person (신뢰도: 1.00, 위치: 47,28,107,61)
+  - person (신뢰도: 1.00, 위치: 84,51,190,105)
+  - person (신뢰도: 1.00, 위치: 429,214,155,28)
+  - person (신뢰도: 1.00, 위치: 281,120,186,37)
+  - baseball glove (신뢰도: 1.00, 위치: 23,8,36,23)
+  - person (신뢰도: 1.00, 위치: 202,112,414,234)
+  - person (신뢰도: 1.00, 위치: 539,197,212,163)
+  - person (신뢰도: 1.00, 위치: 19,11,54,34)
+===================
+[71:08:33.580129623] [970561] [1;31mERROR [1;37mCamera [1;34mcamera.cpp:693 [0mCamera in Stopping state trying queueRequest() requiring state Running
+[71:08:33.580260826] [970561] [1;31mERROR [1;37mCamera [1;34mcamera.cpp:693 [0mCamera in Stopping state trying queueRequest() requiring state Running
+[71:08:33.580289437] [970561] [1;31mERROR [1;37mCamera [1;34mcamera.cpp:693 [0mCamera in Stopping state trying queueRequest() requiring state Running
+프로그램 종료
+[71:08:33.709369797] [970561] [1;31mERROR [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:172 [0mRemoving media device /dev/media0 while still in use
+[71:08:33.709476444] [970561] [1;31mERROR [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:172 [0mRemoving media device /dev/media4 while still in use

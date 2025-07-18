@@ -31,6 +31,10 @@ SOURCE_V5 = zero_copy_openvino_demo_headless_v5.cpp
 TARGET_V5_TRACKING = zero_copy_openvino_yolov5_tracking_demo
 SOURCE_V5_TRACKING = zero_copy_openvino_yolov5_tracking_demo.cpp
 
+# YOLOv5 + SORT + Line Crossing 버전
+TARGET_V5_LINE_CROSSING = zero_copy_openvino_yolov5_line_crossing_demo
+SOURCE_V5_LINE_CROSSING = zero_copy_openvino_yolov5_line_crossing_demo.cpp
+
 # OpenVINO 설정 (GLIBC 호환 버전)
 OPENVINO_INCLUDE = -I/home/lee/openvino/build/install/usr/local/runtime/include
 OPENVINO_LIBS = -L/home/lee/openvino/build/install/usr/local/runtime/lib/aarch64 -lopenvino
@@ -84,6 +88,12 @@ v5-tracking: $(TARGET_V5_TRACKING)
 $(TARGET_V5_TRACKING): $(SOURCE_V5_TRACKING) sort.cpp kalman_tracker.cpp object_tracker.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_TRACKING) $(SOURCE_V5_TRACKING) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
 
+# YOLOv5 + SORT + Line Crossing 버전 빌드
+v5-line-crossing: $(TARGET_V5_LINE_CROSSING)
+
+$(TARGET_V5_LINE_CROSSING): $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_LINE_CROSSING) $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
+
 # SORT 통합 버전 빌드
 zero_copy_openvino_sort_demo: zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o zero_copy_openvino_sort_demo zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
@@ -96,7 +106,7 @@ $(TARGET_YOLO11N): $(SOURCE_YOLO11N)
 
 # 정리
 clean:
-	rm -f $(TARGET) $(TARGET_HEADLESS) $(TARGET_YOLO11N) $(TARGET_V2) $(TARGET_V5) $(TARGET_V5_TRACKING) zero_copy_openvino_sort_demo
+	rm -f $(TARGET) $(TARGET_HEADLESS) $(TARGET_YOLO11N) $(TARGET_V2) $(TARGET_V5) $(TARGET_V5_TRACKING) $(TARGET_V5_LINE_CROSSING) zero_copy_openvino_sort_demo
 
 
 # 실행
@@ -126,6 +136,10 @@ run-v5: $(TARGET_V5)
 # YOLOv5 + SORT 트래킹 버전 실행
 run-v5-tracking: $(TARGET_V5_TRACKING)
 	./$(TARGET_V5_TRACKING)
+
+# YOLOv5 + SORT + Line Crossing 버전 실행
+run-v5-line-crossing: $(TARGET_V5_LINE_CROSSING)
+	./$(TARGET_V5_LINE_CROSSING)
 
 # 디버그 빌드
 debug: CXXFLAGS += -DDEBUG -g3
@@ -157,6 +171,7 @@ help:
 	@echo "  v2         - Build openVION-based v2 version (headless)"
 	@echo "  v5         - Build YOLOv5 version (mainv5.cpp logic, headless)"
 	@echo "  v5-tracking - Build YOLOv5 + SORT tracking version (headless)"
+	@echo "  v5-line-crossing - Build YOLOv5 + SORT + Line Crossing version (headless)"
 	@echo "  clean      - Remove built files"
 	@echo "  run        - Build and run the program"
 	@echo "  run-headless - Build and run the headless version"
@@ -164,9 +179,10 @@ help:
 	@echo "  run-v2     - Build and run the openVION-based v2 version"
 	@echo "  run-v5     - Build and run the YOLOv5 version (mainv5.cpp logic)"
 	@echo "  run-v5-tracking - Build and run the YOLOv5 + SORT tracking version"
+	@echo "  run-v5-line-crossing - Build and run the YOLOv5 + SORT + Line Crossing version"
 	@echo "  debug      - Build with debug information"
 	@echo "  check-deps - Check if all dependencies are available"
 	@echo "  install-system - Build using system-installed OpenVINO"
 	@echo "  help       - Show this help message"
 
-.PHONY: all headless yolo11n v2 v5 v5-tracking clean run run-headless run-yolo11n run-v2 run-v5 run-v5-tracking debug check-deps install-system help
+.PHONY: all headless yolo11n v2 v5 v5-tracking v5-line-crossing clean run run-headless run-yolo11n run-v2 run-v5 run-v5-tracking run-v5-line-crossing debug check-deps install-system help

@@ -35,9 +35,20 @@ SOURCE_V5_TRACKING = zero_copy_openvino_yolov5_tracking_demo.cpp
 TARGET_V5_LINE_CROSSING = zero_copy_openvino_yolov5_line_crossing_demo
 SOURCE_V5_LINE_CROSSING = zero_copy_openvino_yolov5_line_crossing_demo.cpp
 
+# YOLOv5 + SORT + Line Crossing + Risk Analysis 버전 (main_control.cpp 로직 통합)
+TARGET_V5_RISK_ANALYSIS = zero_copy_openvino_yolov5_risk_analysis_demo
+SOURCE_V5_RISK_ANALYSIS = zero_copy_openvino_yolov5_risk_analysis_demo.cpp
+
+# YOLOv5 + SORT + Risk Analysis + RTSP 스트리밍 버전
+TARGET_V5_RTSP = zero_copy_openvino_yolov5_rtsp_demo
+SOURCE_V5_RTSP = zero_copy_openvino_yolov5_rtsp_demo.cpp
+
 # OpenVINO 설정 (GLIBC 호환 버전)
-OPENVINO_INCLUDE = -I/home/lee/openvino/build/install/usr/local/runtime/include
-OPENVINO_LIBS = -L/home/lee/openvino/build/install/usr/local/runtime/lib/aarch64 -lopenvino
+OPENVINO_INCLUDE = -I/usr/local/runtime/include
+OPENVINO_LIBS = -L/usr/local/runtime/lib/aarch64 -lopenvino
+# 전체 플래그 설정
+CXXFLAGS += $(OPENVINO_INCLUDE)
+LDFLAGS += $(OPENVINO_LIBS)
 
 # OpenCV 설정 (헤드리스 버전은 highgui 제외)
 OPENCV_INCLUDE = -I/usr/local/include/opencv4
@@ -48,14 +59,22 @@ OPENCV_LIBS_HEADLESS = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_
 LIBCAMERA_INCLUDE = -I/usr/include/libcamera
 LIBCAMERA_LIBS = -lcamera -lcamera-base
 
+# SQLite 설정 (Risk Analysis 버전용)
+SQLITE_LIBS = -lSQLiteCpp -lsqlite3
+
+# GStreamer 설정 (RTSP 스트리밍 버전용)
+GSTREAMER_INCLUDE = `pkg-config --cflags gstreamer-1.0 gstreamer-rtsp-server-1.0 gstreamer-app-1.0`
+GSTREAMER_LIBS = `pkg-config --libs gstreamer-1.0 gstreamer-rtsp-server-1.0 gstreamer-app-1.0`
 
 # Eigen 헤더 경로 추가
 EIGEN_INCLUDE = -I/usr/include/eigen3
 
 # 전체 플래그 설정
-INCLUDES = $(OPENVINO_INCLUDE) $(OPENCV_INCLUDE) $(LIBCAMERA_INCLUDE) $(EIGEN_INCLUDE)
+INCLUDES = $(OPENVINO_INCLUDE) $(OPENCV_INCLUDE) $(LIBCAMERA_INCLUDE) $(EIGEN_INCLUDE) $(GSTREAMER_INCLUDE)
 LIBS = $(OPENVINO_LIBS) $(OPENCV_LIBS) $(LIBCAMERA_LIBS) -lpthread
 LIBS_HEADLESS = $(OPENVINO_LIBS) $(OPENCV_LIBS_HEADLESS) $(LIBCAMERA_LIBS) -lpthread
+LIBS_WITH_SQLITE = $(OPENVINO_LIBS) $(OPENCV_LIBS_HEADLESS) $(LIBCAMERA_LIBS) $(SQLITE_LIBS) -lpthread
+LIBS_WITH_RTSP = $(OPENVINO_LIBS) $(OPENCV_LIBS_HEADLESS) $(LIBCAMERA_LIBS) $(SQLITE_LIBS) $(GSTREAMER_LIBS) -lpthread
 
 
 # 빌드 규칙
@@ -94,6 +113,21 @@ v5-line-crossing: $(TARGET_V5_LINE_CROSSING)
 $(TARGET_V5_LINE_CROSSING): $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_LINE_CROSSING) $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
 
+# YOLOv5 + SORT + Line Crossing + Risk Analysis 버전 빌드 (main_control.cpp 로직 통합)
+v5-risk-analysis: $(TARGET_V5_RISK_ANALYSIS)
+
+$(TARGET_V5_RISK_ANALYSIS): $(SOURCE_V5_RISK_ANALYSIS) sort.cpp kalman_tracker.cpp object_tracker.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_RISK_ANALYSIS) $(SOURCE_V5_RISK_ANALYSIS) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_WITH_SQLITE)
+
+# YOLOv5 + SORT + Risk Analysis + RTSP 스트리밍 버전 빌드
+v5-rtsp: $(TARGET_V5_RTSP)
+
+$(TARGET_V5_RTSP): $(SOURCE_V5_RTSP) sort.cpp kalman_tracker.cpp object_tracker.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_RTSP) $(SOURCE_V5_RTSP) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_WITH_RTSP)
+
+$(TARGET_V5_LINE_CROSSING): $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_LINE_CROSSING) $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
+
 # SORT 통합 버전 빌드
 zero_copy_openvino_sort_demo: zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o zero_copy_openvino_sort_demo zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
@@ -106,7 +140,7 @@ $(TARGET_YOLO11N): $(SOURCE_YOLO11N)
 
 # 정리
 clean:
-	rm -f $(TARGET) $(TARGET_HEADLESS) $(TARGET_YOLO11N) $(TARGET_V2) $(TARGET_V5) $(TARGET_V5_TRACKING) $(TARGET_V5_LINE_CROSSING) zero_copy_openvino_sort_demo
+	rm -f $(TARGET) $(TARGET_HEADLESS) $(TARGET_YOLO11N) $(TARGET_V2) $(TARGET_V5) $(TARGET_V5_TRACKING) $(TARGET_V5_LINE_CROSSING) $(TARGET_V5_RISK_ANALYSIS) $(TARGET_V5_RTSP) zero_copy_openvino_sort_demo
 
 
 # 실행
@@ -141,6 +175,14 @@ run-v5-tracking: $(TARGET_V5_TRACKING)
 run-v5-line-crossing: $(TARGET_V5_LINE_CROSSING)
 	./$(TARGET_V5_LINE_CROSSING)
 
+# YOLOv5 + SORT + Line Crossing + Risk Analysis 버전 실행
+run-v5-risk-analysis: $(TARGET_V5_RISK_ANALYSIS)
+	./$(TARGET_V5_RISK_ANALYSIS)
+
+# YOLOv5 + SORT + Risk Analysis + RTSP 스트리밍 버전 실행
+run-v5-rtsp: $(TARGET_V5_RTSP)
+	./$(TARGET_V5_RTSP)
+
 # 디버그 빌드
 debug: CXXFLAGS += -DDEBUG -g3
 debug: $(TARGET)
@@ -172,6 +214,8 @@ help:
 	@echo "  v5         - Build YOLOv5 version (mainv5.cpp logic, headless)"
 	@echo "  v5-tracking - Build YOLOv5 + SORT tracking version (headless)"
 	@echo "  v5-line-crossing - Build YOLOv5 + SORT + Line Crossing version (headless)"
+	@echo "  v5-risk-analysis - Build YOLOv5 + SORT + Line Crossing + Risk Analysis version (with main_control.cpp logic)"
+	@echo "  v5-rtsp     - Build YOLOv5 + SORT + Risk Analysis + RTSP streaming version"
 	@echo "  clean      - Remove built files"
 	@echo "  run        - Build and run the program"
 	@echo "  run-headless - Build and run the headless version"
@@ -180,9 +224,11 @@ help:
 	@echo "  run-v5     - Build and run the YOLOv5 version (mainv5.cpp logic)"
 	@echo "  run-v5-tracking - Build and run the YOLOv5 + SORT tracking version"
 	@echo "  run-v5-line-crossing - Build and run the YOLOv5 + SORT + Line Crossing version"
+	@echo "  run-v5-risk-analysis - Build and run the YOLOv5 + Risk Analysis version (with main_control.cpp logic)"
+	@echo "  run-v5-rtsp - Build and run the YOLOv5 + Risk Analysis + RTSP streaming version"
 	@echo "  debug      - Build with debug information"
 	@echo "  check-deps - Check if all dependencies are available"
 	@echo "  install-system - Build using system-installed OpenVINO"
 	@echo "  help       - Show this help message"
 
-.PHONY: all headless yolo11n v2 v5 v5-tracking v5-line-crossing clean run run-headless run-yolo11n run-v2 run-v5 run-v5-tracking run-v5-line-crossing debug check-deps install-system help
+.PHONY: all headless yolo11n v2 v5 v5-tracking v5-line-crossing v5-risk-analysis v5-rtsp clean run run-headless run-yolo11n run-v2 run-v5 run-v5-tracking run-v5-line-crossing run-v5-risk-analysis run-v5-rtsp debug check-deps install-system help

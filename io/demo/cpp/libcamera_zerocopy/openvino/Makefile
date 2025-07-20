@@ -63,8 +63,8 @@ LIBCAMERA_LIBS = -lcamera -lcamera-base
 SQLITE_LIBS = -lSQLiteCpp -lsqlite3
 
 # GStreamer 설정 (RTSP 스트리밍 버전용)
-GSTREAMER_INCLUDE = `pkg-config --cflags gstreamer-1.0 gstreamer-rtsp-server-1.0 gstreamer-app-1.0`
-GSTREAMER_LIBS = `pkg-config --libs gstreamer-1.0 gstreamer-rtsp-server-1.0 gstreamer-app-1.0`
+GSTREAMER_INCLUDE = `pkg-config --cflags gstreamer-1.0 gstreamer-rtsp-1.0 gstreamer-rtsp-server-1.0 gstreamer-app-1.0`
+GSTREAMER_LIBS = `pkg-config --libs gstreamer-1.0 gstreamer-rtsp-1.0 gstreamer-rtsp-server-1.0 gstreamer-app-1.0`
 
 # Eigen 헤더 경로 추가
 EIGEN_INCLUDE = -I/usr/include/eigen3
@@ -125,8 +125,7 @@ v5-rtsp: $(TARGET_V5_RTSP)
 $(TARGET_V5_RTSP): $(SOURCE_V5_RTSP) sort.cpp kalman_tracker.cpp object_tracker.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_RTSP) $(SOURCE_V5_RTSP) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_WITH_RTSP)
 
-$(TARGET_V5_LINE_CROSSING): $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_LINE_CROSSING) $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
+# 중복 규칙 제거 (이미 위에 정의됨)
 
 # SORT 통합 버전 빌드
 zero_copy_openvino_sort_demo: zero_copy_openvino_sort_demo.cpp sort.cpp kalman_tracker.cpp object_tracker.cpp

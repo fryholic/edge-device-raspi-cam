@@ -283,70 +283,113 @@ static void media_unprepared(GstRTSPMedia *media, gpointer user_data) {
     appsrc_available = false;
 }
 
-// 미디어 준비 콜백 함수 - appsrc 찾기
+// 미디어 준비 콜백 함수 - appsrc 찾기 (강화된 버전)
 static void media_prepared_callback(GstRTSPMedia *media, gpointer user_data) {
+    std::cout << "[RTSP] ========== MEDIA PREPARED CALLBACK CALLED ==========" << std::endl;
     std::cout << "[RTSP] Media prepared - finding appsrc element" << std::endl;
     
     // appsrc 찾기 (prepared 상태에서만 가능)
     GstElement *pipeline = gst_rtsp_media_get_element(media);
     if (pipeline) {
-        // 먼저 직접 이름으로 찾기
-        GstElement *appsrc = gst_bin_get_by_name(GST_BIN(pipeline), "mysrc");
+        std::cout << "[RTSP] Successfully obtained media pipeline element" << std::endl;
         
-        // 찾지 못한 경우 더 다양한 방법으로 시도
-        if (!appsrc) {
-            std::cout << "[RTSP] Could not find appsrc by name 'mysrc', trying alternative methods..." << std::endl;
-            
-            // 재귀적으로 검색
-            appsrc = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "mysrc");
-            
-            // 여전히 못 찾았다면 타입으로 검색 (모든 appsrc 타입의 요소 찾기)
-            if (!appsrc) {
-                std::cout << "[RTSP] Still not found, searching by element type..." << std::endl;
-                
-                // 파이프라인에서 모든 요소 반복하며 검색
-                GstIterator *it = gst_bin_iterate_recurse(GST_BIN(pipeline));
-                GValue item = G_VALUE_INIT;
-                gboolean done = FALSE;
-                
-                while (!done) {
-                    switch (gst_iterator_next(it, &item)) {
-                        case GST_ITERATOR_OK: {
-                            GstElement *element = GST_ELEMENT(g_value_get_object(&item));
-                            // 요소 타입 검사
-                            if (GST_IS_APP_SRC(element)) {
-                                std::cout << "[RTSP] Found element of type GstAppSrc: " 
-                                          << GST_ELEMENT_NAME(element) << std::endl;
-                                if (!appsrc) {
-                                    appsrc = GST_ELEMENT_CAST(gst_object_ref(element));
-                                }
-                            }
-                            g_value_reset(&item);
-                            break;
-                        }
-                        case GST_ITERATOR_RESYNC:
-                            gst_iterator_resync(it);
-                            break;
-                        case GST_ITERATOR_ERROR:
-                        case GST_ITERATOR_DONE:
-                            done = TRUE;
-                            break;
-                    }
+        // 파이프라인 상태 확인
+        GstState state;
+        GstStateChangeReturn ret = gst_element_get_state(pipeline, &state, nullptr, GST_CLOCK_TIME_NONE);
+        std::cout << "[RTSP] Pipeline state: " << gst_element_state_get_name(state) 
+                  << " (change return: " << ret << ")" << std::endl;
+        
+        // 파이프라인이 준비되지 않았다면 READY 상태로 변경
+        if (state < GST_STATE_READY) {
+            std::cout << "[RTSP] Setting pipeline to READY state..." << std::endl;
+            gst_element_set_state(pipeline, GST_STATE_READY);
+            gst_element_get_state(pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
+        }
+        
+        // 파이프라인 구조 디버깅
+        std::cout << "[RTSP] Analyzing pipeline structure..." << std::endl;
+        GstIterator *it = gst_bin_iterate_elements(GST_BIN(pipeline));
+        GValue item = G_VALUE_INIT;
+        gboolean done = FALSE;
+        
+        while (!done) {
+            switch (gst_iterator_next(it, &item)) {
+                case GST_ITERATOR_OK: {
+                    GstElement *element = GST_ELEMENT(g_value_get_object(&item));
+                    std::cout << "[RTSP] Pipeline element: " << GST_ELEMENT_NAME(element) 
+                              << " (type: " << G_OBJECT_TYPE_NAME(element) << ")" << std::endl;
+                    g_value_reset(&item);
+                    break;
                 }
-                g_value_unset(&item);
-                gst_iterator_free(it);
+                case GST_ITERATOR_RESYNC:
+                    gst_iterator_resync(it);
+                    break;
+                case GST_ITERATOR_ERROR:
+                case GST_ITERATOR_DONE:
+                    done = TRUE;
+                    break;
             }
+        }
+        g_value_unset(&item);
+        gst_iterator_free(it);
+        
+        // appsrc 검색을 더 체계적으로 수행
+        GstElement *appsrc = nullptr;
+        
+        // 방법 1: 직접 이름으로 찾기
+        appsrc = gst_bin_get_by_name(GST_BIN(pipeline), "mysrc");
+        std::cout << "[RTSP] Method 1 (by name 'mysrc'): " << (appsrc ? "SUCCESS" : "FAILED") << std::endl;
+        
+        // 방법 2: 재귀적으로 검색
+        if (!appsrc) {
+            appsrc = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "mysrc");
+            std::cout << "[RTSP] Method 2 (recursive search): " << (appsrc ? "SUCCESS" : "FAILED") << std::endl;
+        }
+        
+        // 방법 3: 타입으로 검색
+        if (!appsrc) {
+            std::cout << "[RTSP] Method 3: Searching by element type (GstAppSrc)..." << std::endl;
+            
+            GstIterator *it = gst_bin_iterate_recurse(GST_BIN(pipeline));
+            GValue item = G_VALUE_INIT;
+            gboolean done = FALSE;
+            
+            while (!done && !appsrc) {
+                switch (gst_iterator_next(it, &item)) {
+                    case GST_ITERATOR_OK: {
+                        GstElement *element = GST_ELEMENT(g_value_get_object(&item));
+                        if (element && GST_IS_APP_SRC(element)) {
+                            std::cout << "[RTSP] Found GstAppSrc element: " << GST_ELEMENT_NAME(element) << std::endl;
+                            appsrc = element;
+                            gst_object_ref(appsrc);  // 참조 카운트 증가
+                        }
+                        g_value_reset(&item);
+                        break;
+                    }
+                    case GST_ITERATOR_RESYNC:
+                        gst_iterator_resync(it);
+                        break;
+                    case GST_ITERATOR_ERROR:
+                    case GST_ITERATOR_DONE:
+                        done = TRUE;
+                        break;
+                }
+            }
+            g_value_unset(&item);
+            gst_iterator_free(it);
         }
             
         if (appsrc) {
+            std::cout << "[RTSP] Successfully found appsrc element: " << GST_ELEMENT_NAME(appsrc) << std::endl;
+            
             {
                 std::lock_guard<std::mutex> lock(appsrc_mutex);
                 current_appsrc = GST_APP_SRC(appsrc);
                 appsrc_available = true;
-                std::cout << "[RTSP] Found and configured appsrc: " << appsrc << std::endl;
+                std::cout << "[RTSP] *** APPSRC NOW AVAILABLE FOR STREAMING ***" << std::endl;
             }
             
-            // appsrc 속성 설정 (최적화)
+            // appsrc 속성 설정 (RGB888 최적화)
             g_object_set(G_OBJECT(appsrc),
                         "is-live", TRUE,
                         "format", GST_FORMAT_TIME,
@@ -354,18 +397,47 @@ static void media_prepared_callback(GstRTSPMedia *media, gpointer user_data) {
                         "min-latency", 0,
                         "max-latency", 100000000,  // 100ms
                         "block", FALSE,
-                        "max-bytes", 1000000,      // 1MB 버퍼
+                        "max-bytes", STREAM_WIDTH * STREAM_HEIGHT * 3 * 2,  // RGB888 2프레임 버퍼
                         "emit-signals", TRUE,
                         NULL);
+            
+            // RGB888 caps 명시적 설정
+            GstCaps *caps = gst_caps_new_simple("video/x-raw",
+                                               "format", G_TYPE_STRING, "RGB",
+                                               "width", G_TYPE_INT, STREAM_WIDTH,
+                                               "height", G_TYPE_INT, STREAM_HEIGHT,
+                                               "framerate", GST_TYPE_FRACTION, TARGET_FPS, 1,
+                                               NULL);
+            g_object_set(G_OBJECT(appsrc), "caps", caps, NULL);
+            gst_caps_unref(caps);
             
             // appsrc 콜백 연결
             g_signal_connect(appsrc, "need-data", G_CALLBACK(need_data), NULL);
             g_signal_connect(appsrc, "enough-data", G_CALLBACK(enough_data), NULL);
             
-            // 중요: appsrc를 해제하지 않음 - 우리가 참조 중인 객체이므로
-            // gst_object_unref(appsrc);
+            std::cout << "[RTSP] appsrc configuration and callbacks completed successfully" << std::endl;
+            
         } else {
-            std::cerr << "[ERROR] Could not find any appsrc element in the pipeline" << std::endl;
+            std::cerr << "[ERROR] Could not find any appsrc element in the pipeline after all attempts" << std::endl;
+            std::cerr << "[ERROR] This suggests the pipeline string may be fundamentally incorrect" << std::endl;
+            
+            // 강제로 appsrc 생성 시도
+            std::cout << "[RTSP] Attempting to create appsrc manually..." << std::endl;
+            GstElement *manual_appsrc = gst_element_factory_make("appsrc", "mysrc");
+            if (manual_appsrc) {
+                std::cout << "[RTSP] Manual appsrc creation successful, adding to pipeline..." << std::endl;
+                if (gst_bin_add(GST_BIN(pipeline), manual_appsrc)) {
+                    std::lock_guard<std::mutex> lock(appsrc_mutex);
+                    current_appsrc = GST_APP_SRC(manual_appsrc);
+                    appsrc_available = true;
+                    std::cout << "[RTSP] *** MANUALLY CREATED APPSRC NOW AVAILABLE ***" << std::endl;
+                } else {
+                    std::cerr << "[ERROR] Failed to add manual appsrc to pipeline" << std::endl;
+                    gst_object_unref(manual_appsrc);
+                }
+            } else {
+                std::cerr << "[ERROR] Failed to create manual appsrc" << std::endl;
+            }
         }
         
         gst_object_unref(pipeline);
@@ -374,15 +446,59 @@ static void media_prepared_callback(GstRTSPMedia *media, gpointer user_data) {
     }
 }
 
-// 미디어 구성 콜백
+// 미디어 구성 콜백 (더욱 안전한 버전)
 static void media_configure(GstRTSPMediaFactory *factory, GstRTSPMedia *media, gpointer user_data) {
-    std::cout << "[RTSP] Media configured" << std::endl;
+    std::cout << "[RTSP] ========== MEDIA CONFIGURE CALLED ==========" << std::endl;
+    std::cout << "[RTSP] Media configured - setting up callbacks and properties" << std::endl;
     
     // 미디어 언프리페어 콜백 연결
     g_signal_connect(media, "unprepared", G_CALLBACK(media_unprepared), NULL);
     
-    // prepared 상태에서만 appsrc를 찾을 수 있으므로, prepared 신호 연결 (미디어 준비됨 콜백)
+    // prepared 상태에서만 appsrc를 찾을 수 있으므로, prepared 신호 연결
     g_signal_connect(media, "prepared", G_CALLBACK(media_prepared_callback), NULL);
+    
+    // 미디어 상태 변화 모니터링을 위한 추가 콜백
+    g_signal_connect(media, "new-state", G_CALLBACK(+[](GstRTSPMedia *media, gint state, gpointer user_data) {
+        std::cout << "[RTSP] Media state changed to: " << state << std::endl;
+    }), NULL);
+    
+    // 미디어 속성 설정 (더 안정적인 스트리밍을 위해)
+    g_object_set(G_OBJECT(media),
+                "shared", FALSE,           // 각 클라이언트마다 새로운 파이프라인
+                "reusable", TRUE,          // 미디어 재사용 가능
+                "stop-on-disconnect", FALSE, // 클라이언트 해제 시 미디어 정지하지 않음
+                NULL);
+    
+    std::cout << "[RTSP] Preparing media synchronously for immediate appsrc access" << std::endl;
+    
+    // 동기적으로 미디어 준비 (즉시 appsrc 확보)
+    if (gst_rtsp_media_prepare(media, NULL)) {
+        std::cout << "[RTSP] Media preparation successful" << std::endl;
+    } else {
+        std::cerr << "[RTSP] Media preparation failed" << std::endl;
+        
+        // 실패한 경우 비동기적으로 재시도
+        std::thread retry_thread([media]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            
+            std::cout << "[RTSP] Retrying media preparation..." << std::endl;
+            bool success = false;
+            for (int attempt = 0; attempt < 3 && !success; attempt++) {
+                if (gst_rtsp_media_prepare(media, NULL)) {
+                    std::cout << "[RTSP] Media preparation successful on retry " << (attempt + 1) << std::endl;
+                    success = true;
+                } else {
+                    std::cout << "[RTSP] Media preparation retry " << (attempt + 1) << " failed" << std::endl;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                }
+            }
+            
+            if (!success) {
+                std::cerr << "[ERROR] All media preparation attempts failed" << std::endl;
+            }
+        });
+        retry_thread.detach();
+    }
 }
 
 // RTSP 메타데이터 전송 스레드
@@ -491,8 +607,8 @@ bool init_rtsp_server() {
         "queue max-size-buffers=3 leaky=downstream ! "
         "videoconvert ! "
         "video/x-raw,format=NV12 ! "  // NV12 포맷 사용 (하드웨어 가속에 최적)
-        "v4l2h264enc extra-controls=\"encode,video_bitrate=4000000,h264_profile=1,h264_level=13\" ! "
-        "video/x-h264,profile=baseline ! "
+        "v4l2h264enc extra-controls=\"encode,video_bitrate=4000000,h264_profile=2,h264_level=13\" ! "
+        "video/x-h264,profile=main ! "
         "h264parse ! "
         "rtph264pay config-interval=1 name=pay0 pt=96 )";
     
@@ -504,7 +620,7 @@ bool init_rtsp_server() {
         "queue max-size-buffers=3 leaky=downstream ! "
         "videoconvert ! "
         "video/x-raw,format=I420 ! "
-        "x264enc tune=zerolatency bitrate=4000 speed-preset=veryfast profile=baseline key-int-max=30 threads=4 ! "
+        "x264enc tune=zerolatency bitrate=4000 speed-preset=veryfast profile=main key-int-max=30 threads=4 ! "
         "h264parse ! "
         "rtph264pay config-interval=1 name=pay0 pt=96 )";
     
@@ -515,11 +631,12 @@ bool init_rtsp_server() {
         ",height=" + std::to_string(STREAM_HEIGHT) + ",framerate=" + std::to_string(TARGET_FPS) + "/1\" ! "
         "queue max-size-buffers=2 ! "
         "videoconvert ! "
-        "x264enc tune=zerolatency bitrate=2000 speed-preset=ultrafast key-int-max=15 ! "
+        "video/x-raw,format=I420 ! "
+        "x264enc tune=zerolatency bitrate=2000 speed-preset=ultrafast profile=main key-int-max=15 ! "
         "h264parse config-interval=1 ! "
         "rtph264pay name=pay0 pt=96 )";
     
-    std::cout << "[RTSP] Trying hardware H264 encoder first..." << std::endl;
+    std::cout << "[RTSP] Testing pipelines starting with most stable configuration..." << std::endl;
     
     // 파이프라인 테스트 함수 - 더 자세한 진단 정보 포함
     auto test_pipeline = [](const std::string& pipeline_str, const std::string& name) -> bool {
@@ -566,19 +683,43 @@ bool init_rtsp_server() {
         }
     };
     
-    // 파이프라인 선택 로직
+    // 파이프라인 선택 로직 - 가장 안정적인 것부터 시도
     std::string selected_pipeline;
     std::string selected_name;
     
-    if (test_pipeline(pipeline_hw, "Hardware H264 encoder")) {
-        selected_pipeline = pipeline_hw;
-        selected_name = "Hardware v4l2h264enc encoder";
-    } else if (test_pipeline(pipeline_sw, "Optimized software encoder")) {
-        selected_pipeline = pipeline_sw;
-        selected_name = "Optimized x264 encoder";
+    // 1. 가장 간단한 파이프라인 (최우선 - 가장 안정적)
+    std::string pipeline_simple = 
+        "( appsrc name=mysrc is-live=true format=time do-timestamp=true "
+        "caps=\"video/x-raw,format=RGB,width=" + std::to_string(STREAM_WIDTH) + 
+        ",height=" + std::to_string(STREAM_HEIGHT) + ",framerate=" + std::to_string(TARGET_FPS) + "/1\" ! "
+        "queue ! "
+        "videoconvert ! "
+        "x264enc tune=zerolatency bitrate=1000 speed-preset=ultrafast ! "
+        "h264parse ! "
+        "rtph264pay name=pay0 pt=96 )";
+    
+    // 2. 더 간단한 테스트 파이프라인
+    std::string pipeline_test = 
+        "( appsrc name=mysrc ! "
+        "videoconvert ! "
+        "x264enc ! "
+        "rtph264pay name=pay0 pt=96 )";
+    
+    if (test_pipeline(pipeline_test, "Ultra-simple test encoder")) {
+        selected_pipeline = pipeline_test;
+        selected_name = "Ultra-simple test encoder";
+    } else if (test_pipeline(pipeline_simple, "Simple x264 encoder")) {
+        selected_pipeline = pipeline_simple;
+        selected_name = "Simple x264 encoder";
     } else if (test_pipeline(pipeline_fallback, "Fallback encoder")) {
         selected_pipeline = pipeline_fallback;
         selected_name = "Fallback x264 encoder";
+    } else if (test_pipeline(pipeline_sw, "Optimized software encoder")) {
+        selected_pipeline = pipeline_sw;
+        selected_name = "Optimized x264 encoder";
+    } else if (test_pipeline(pipeline_hw, "Hardware H264 encoder")) {
+        selected_pipeline = pipeline_hw;
+        selected_name = "Hardware v4l2h264enc encoder";
     } else {
         std::cerr << "[ERROR] All pipeline tests failed!" << std::endl;
         return false;
@@ -586,11 +727,101 @@ bool init_rtsp_server() {
     
     gst_rtsp_media_factory_set_launch(factory, selected_pipeline.c_str());
     std::cout << "[RTSP] Using: " << selected_name << std::endl;
-    gst_rtsp_media_factory_set_shared(factory, TRUE);
-    gst_rtsp_media_factory_set_eos_shutdown(factory, FALSE);
-    gst_rtsp_media_factory_set_stop_on_disconnect(factory, FALSE);
     
+    // Factory 설정 최적화 - 안정성을 위한 설정
+    gst_rtsp_media_factory_set_shared(factory, FALSE);  // 각 클라이언트마다 새로운 미디어 생성
+    gst_rtsp_media_factory_set_eos_shutdown(factory, FALSE);  // EOS 시 서버 종료 방지
+    gst_rtsp_media_factory_set_stop_on_disconnect(factory, FALSE);  // 클라이언트 해제 시 미디어 정지 방지
+    gst_rtsp_media_factory_set_media_gtype(factory, GST_TYPE_RTSP_MEDIA);  // 미디어 타입 명시
+    
+    // 추가 안정성 설정
+    gst_rtsp_media_factory_set_buffer_size(factory, 0);  // 버퍼 크기 자동 조정
+    gst_rtsp_media_factory_set_latency(factory, 200);    // 200ms 레이턴시 설정
+    
+    // 미디어 구성 콜백 연결 (appsrc 준비를 위해)
     g_signal_connect(factory, "media-configure", (GCallback)media_configure, nullptr);
+    
+    // 미디어 생성 콜백도 연결하여 디버깅
+    g_signal_connect(factory, "media-constructed", G_CALLBACK(+[](GstRTSPMediaFactory *factory, GstRTSPMedia *media, gpointer user_data) {
+        std::cout << "[RTSP] ========== MEDIA CONSTRUCTED ==========" << std::endl;
+        std::cout << "[RTSP] New media constructed by factory" << std::endl;
+        
+        // 즉시 미디어 준비 시도
+        std::cout << "[RTSP] Attempting to prepare media immediately..." << std::endl;
+        if (gst_rtsp_media_prepare(media, nullptr)) {
+            std::cout << "[RTSP] Media preparation initiated from constructed callback" << std::endl;
+        } else {
+            std::cout << "[RTSP] Failed to prepare media in constructed callback" << std::endl;
+        }
+        
+        // 미디어가 구성되었으므로 직접 appsrc를 찾아보자
+        std::cout << "[RTSP] Attempting to find appsrc directly from constructed media..." << std::endl;
+        GstElement *pipeline = gst_rtsp_media_get_element(media);
+        if (pipeline) {
+            std::cout << "[RTSP] Got pipeline from media, searching for appsrc..." << std::endl;
+            
+            // appsrc 직접 검색
+            GstElement *appsrc = gst_bin_get_by_name(GST_BIN(pipeline), "mysrc");
+            if (!appsrc) {
+                appsrc = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "mysrc");
+            }
+            
+            if (appsrc) {
+                std::cout << "[RTSP] *** FOUND APPSRC IN CONSTRUCTED CALLBACK! ***" << std::endl;
+                
+                {
+                    std::lock_guard<std::mutex> lock(appsrc_mutex);
+                    current_appsrc = GST_APP_SRC(appsrc);
+                    appsrc_available = true;
+                    std::cout << "[RTSP] *** APPSRC NOW AVAILABLE FOR STREAMING ***" << std::endl;
+                }
+                
+                // appsrc 속성 설정
+                g_object_set(G_OBJECT(appsrc),
+                            "is-live", TRUE,
+                            "format", GST_FORMAT_TIME,
+                            "do-timestamp", TRUE,
+                            "min-latency", 0,
+                            "max-latency", 100000000,  // 100ms
+                            "block", FALSE,
+                            "max-bytes", STREAM_WIDTH * STREAM_HEIGHT * 3 * 2,
+                            "emit-signals", TRUE,
+                            NULL);
+                
+                // RGB888 caps 설정
+                GstCaps *caps = gst_caps_new_simple("video/x-raw",
+                                                   "format", G_TYPE_STRING, "RGB",
+                                                   "width", G_TYPE_INT, STREAM_WIDTH,
+                                                   "height", G_TYPE_INT, STREAM_HEIGHT,
+                                                   "framerate", GST_TYPE_FRACTION, TARGET_FPS, 1,
+                                                   NULL);
+                g_object_set(G_OBJECT(appsrc), "caps", caps, NULL);
+                gst_caps_unref(caps);
+                
+                // 콜백 연결
+                g_signal_connect(appsrc, "need-data", G_CALLBACK(need_data), NULL);
+                g_signal_connect(appsrc, "enough-data", G_CALLBACK(enough_data), NULL);
+                
+                std::cout << "[RTSP] appsrc configuration completed in constructed callback" << std::endl;
+            } else {
+                std::cout << "[RTSP] Could not find appsrc in constructed media pipeline" << std::endl;
+            }
+            
+            gst_object_unref(pipeline);
+        } else {
+            std::cout << "[RTSP] Could not get pipeline from constructed media" << std::endl;
+        }
+    }), nullptr);
+    
+    // 마운트 포인트에 팩토리 추가
+    gst_rtsp_mount_points_add_factory(mounts, RTSP_PATH.c_str(), factory);
+    g_object_unref(mounts);
+    
+    // 공유 모드가 비활성화되어 있으므로 사전 미디어 생성하지 않음
+    // 클라이언트 연결 시에 새로운 미디어가 생성되고 appsrc가 설정됨
+    std::cout << "[RTSP] Media factory configured - appsrc will be available when client connects" << std::endl;
+    
+    // 클라이언트 연결/해제 콜백 설정
     g_signal_connect(rtsp_server, "client-connected", G_CALLBACK(
         // 클라이언트 연결 콜백 함수
         +[](GstRTSPServer *server, GstRTSPClient *client, gpointer user_data) {
@@ -603,9 +834,70 @@ bool init_rtsp_server() {
             std::cout << "[RTSP] Client connected from IP: " << host << ", client: " << client << std::endl;
             
             // 클라이언트가 연결되면 스트리밍 가능 상태인지 로그에 기록
-            std::lock_guard<std::mutex> lock(appsrc_mutex);
-            std::cout << "[RTSP] Stream ready status: appsrc=" << current_appsrc << ", available=" 
-                      << (appsrc_available ? "yes" : "no") << std::endl;
+            {
+                std::lock_guard<std::mutex> lock(appsrc_mutex);
+                std::cout << "[RTSP] Stream ready status: appsrc=" << current_appsrc << ", available=" 
+                          << (appsrc_available ? "yes" : "no") << std::endl;
+            }
+            
+            // appsrc가 아직 사용 불가능하면 강제로 미디어 재준비 시도
+            if (!appsrc_available) {
+                std::cout << "[RTSP] Attempting to force media preparation for client..." << std::endl;
+                
+                // 새로운 스레드에서 미디어 준비 시도 (콜백 컨텍스트에서 벗어나기 위해)
+                std::thread([client, server]() {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 짧은 대기
+                    
+                    std::cout << "[RTSP] Checking client sessions for media preparation..." << std::endl;
+                    
+                    // 클라이언트의 세션들을 확인하고 미디어를 강제 준비
+                    GstRTSPSessionPool *pool = gst_rtsp_client_get_session_pool(client);
+                    if (pool) {
+                        // 서버에서 미디어 팩토리를 찾아서 강제로 미디어 생성
+                        GstRTSPMountPoints *mounts = gst_rtsp_server_get_mount_points(server);
+                        if (mounts) {
+                            GstRTSPMediaFactory *factory = gst_rtsp_mount_points_match(mounts, RTSP_PATH.c_str(), nullptr);
+                            if (factory) {
+                                std::cout << "[RTSP] Found media factory, attempting to create media..." << std::endl;
+                                
+                                // URL 생성
+                                GstRTSPUrl *url = nullptr;
+                                std::string full_url = "rtsp://localhost:" + std::to_string(RTSP_PORT) + RTSP_PATH;
+                                if (gst_rtsp_url_parse(full_url.c_str(), &url) == GST_RTSP_OK) {
+                                    // 미디어 생성 시도 (올바른 URL로)
+                                    GstRTSPMedia *media = gst_rtsp_media_factory_construct(factory, url);
+                                    if (media) {
+                                        std::cout << "[RTSP] Media created, preparing..." << std::endl;
+                                        
+                                        // 미디어 준비
+                                        if (gst_rtsp_media_prepare(media, nullptr)) {
+                                            std::cout << "[RTSP] Media preparation initiated successfully" << std::endl;
+                                        } else {
+                                            std::cout << "[RTSP] Failed to prepare media" << std::endl;
+                                        }
+                                        
+                                        g_object_unref(media);
+                                    } else {
+                                        std::cout << "[RTSP] Failed to create media from factory" << std::endl;
+                                    }
+                                    
+                                    gst_rtsp_url_free(url);
+                                } else {
+                                    std::cout << "[RTSP] Failed to parse RTSP URL: " << full_url << std::endl;
+                                }
+                                
+                                g_object_unref(factory);
+                            } else {
+                                std::cout << "[RTSP] No media factory found for path: " << RTSP_PATH << std::endl;
+                            }
+                            
+                            g_object_unref(mounts);
+                        }
+                        
+                        g_object_unref(pool);
+                    }
+                }).detach();
+            }
         }
     ), nullptr);
     
@@ -616,8 +908,7 @@ bool init_rtsp_server() {
         }
     ), nullptr);
     
-    gst_rtsp_mount_points_add_factory(mounts, RTSP_PATH.c_str(), factory);
-    g_object_unref(mounts);
+    // 마운트 포인트에 팩토리 추가는 이미 위에서 완료됨
     
     // GMainLoop를 먼저 생성
     main_loop = g_main_loop_new(nullptr, FALSE);
@@ -643,7 +934,12 @@ bool init_rtsp_server() {
     std::cout << "[RTSP] RTSP server initialized. Stream will be available at rtsp://localhost:" 
               << RTSP_PORT << RTSP_PATH << std::endl;
     
+    // 서버 상태 확인
+    std::cout << "[RTSP] Server address: " << gst_rtsp_server_get_address(rtsp_server) << std::endl;
+    std::cout << "[RTSP] Server service: " << gst_rtsp_server_get_service(rtsp_server) << std::endl;
+    
     // 메타데이터 스레드 시작
+    std::cout << "[RTSP] Starting metadata thread..." << std::endl;
     metadata_thread_running = true;
     std::thread metadata_thread(rtsp_metadata_thread);
     metadata_thread.detach();
@@ -1450,21 +1746,32 @@ private:
         } else {
             // appsrc가 사용 불가능한 경우
             static std::chrono::steady_clock::time_point last_reinit_attempt = std::chrono::steady_clock::now();
+            static std::chrono::steady_clock::time_point last_warning_time = std::chrono::steady_clock::now();
             auto now = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_reinit_attempt);
+            auto warning_duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_warning_time);
             
-            // 10초마다 한 번씩만 경고 메시지 출력
-            if (rtsp_frame_count % 300 == 0) {
+            // 5초마다 한 번씩만 경고 메시지 출력 (너무 자주 출력 방지)
+            if (warning_duration.count() >= 5) {
                 std::cerr << "[WARNING] RTSP appsrc not available (current_appsrc: " 
                           << (void*)current_appsrc << ", available: " << appsrc_available.load() << ")" << std::endl;
+                std::cerr << "[INFO] Frames are being processed but not streamed via RTSP yet" << std::endl;
+                last_warning_time = now;
             }
             
-            // 30초마다 RTSP 파이프라인 재연결 시도
-            if (duration.count() >= 30) {
-                std::cout << "[RTSP] Attempting to reconnect RTSP pipeline..." << std::endl;
-                // 여기에서 RTSP 파이프라인을 재초기화하는 코드를 추가할 수 있음
-                // 현재는 단순히 타임스탬프만 업데이트
+            // 15초마다 RTSP 파이프라인 상태 확인 및 복구 시도
+            if (duration.count() >= 15) {
+                std::cout << "[RTSP] Attempting to check and recover RTSP pipeline..." << std::endl;
+                
+                // 여기서 추가적인 복구 로직을 수행할 수 있음
+                // 예: 미디어 팩토리에서 새로운 미디어 생성 시도
+                if (rtsp_server && mounts) {
+                    // RTSP 서버가 여전히 유효한지 확인
+                    std::cout << "[RTSP] RTSP server still active, waiting for media preparation..." << std::endl;
+                }
+                
                 last_reinit_attempt = now;
+                rtsp_recovery_attempts++;
             }
         }
     }

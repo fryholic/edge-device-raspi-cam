@@ -1,5 +1,10 @@
 # Makefile for Zero Copy OpenVINO Demo
 
+# OpenVINO 환경 변수 설정
+export LD_LIBRARY_PATH := /home/lee/openvino/build/install/usr/local/runtime/lib/aarch64:$(LD_LIBRARY_PATH)
+
+
+
 # 컴파일러 설정
 CXX = g++
 CXXFLAGS = -std=c++17 -g -O2 -Wall
@@ -35,6 +40,10 @@ SOURCE_V5_TRACKING = zero_copy_openvino_yolov5_tracking_demo.cpp
 TARGET_V5_LINE_CROSSING = zero_copy_openvino_yolov5_line_crossing_demo
 SOURCE_V5_LINE_CROSSING = zero_copy_openvino_yolov5_line_crossing_demo.cpp
 
+# YOLOv5 + SORT + Line Crossing + 시각화 버전
+TARGET_V5_LINE_CROSSING_VISUAL = zero_copy_openvino_yolov5_line_crossing_visual_demo
+SOURCE_V5_LINE_CROSSING_VISUAL = zero_copy_openvino_yolov5_line_crossing_visual_demo.cpp
+
 # YOLOv5 + SORT + Line Crossing + Risk Analysis 버전 (main_control.cpp 로직 통합)
 TARGET_V5_RISK_ANALYSIS = zero_copy_openvino_yolov5_risk_analysis_demo
 SOURCE_V5_RISK_ANALYSIS = zero_copy_openvino_yolov5_risk_analysis_demo.cpp
@@ -52,7 +61,7 @@ LDFLAGS += $(OPENVINO_LIBS)
 
 # OpenCV 설정 (헤드리스 버전은 highgui 제외)
 OPENCV_INCLUDE = -I/usr/local/include/opencv4
-OPENCV_LIBS = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs
+OPENCV_LIBS = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lopencv_dnn
 OPENCV_LIBS_HEADLESS = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_imgcodecs -lopencv_dnn
 
 # libcamera 설정
@@ -113,6 +122,12 @@ v5-line-crossing: $(TARGET_V5_LINE_CROSSING)
 $(TARGET_V5_LINE_CROSSING): $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_LINE_CROSSING) $(SOURCE_V5_LINE_CROSSING) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS_HEADLESS)
 
+# YOLOv5 + SORT + Line Crossing + 시각화 버전 빌드
+v5-line-crossing-visual: $(TARGET_V5_LINE_CROSSING_VISUAL)
+
+$(TARGET_V5_LINE_CROSSING_VISUAL): $(SOURCE_V5_LINE_CROSSING_VISUAL) sort.cpp kalman_tracker.cpp object_tracker.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET_V5_LINE_CROSSING_VISUAL) $(SOURCE_V5_LINE_CROSSING_VISUAL) sort.cpp kalman_tracker.cpp object_tracker.cpp $(LIBS)
+
 # YOLOv5 + SORT + Line Crossing + Risk Analysis 버전 빌드 (main_control.cpp 로직 통합)
 v5-risk-analysis: $(TARGET_V5_RISK_ANALYSIS)
 
@@ -139,7 +154,7 @@ $(TARGET_YOLO11N): $(SOURCE_YOLO11N)
 
 # 정리
 clean:
-	rm -f $(TARGET) $(TARGET_HEADLESS) $(TARGET_YOLO11N) $(TARGET_V2) $(TARGET_V5) $(TARGET_V5_TRACKING) $(TARGET_V5_LINE_CROSSING) $(TARGET_V5_RISK_ANALYSIS) $(TARGET_V5_RTSP) zero_copy_openvino_sort_demo
+	rm -f $(TARGET) $(TARGET_HEADLESS) $(TARGET_YOLO11N) $(TARGET_V2) $(TARGET_V5) $(TARGET_V5_TRACKING) $(TARGET_V5_LINE_CROSSING) $(TARGET_V5_LINE_CROSSING_VISUAL) $(TARGET_V5_RISK_ANALYSIS) $(TARGET_V5_RTSP) zero_copy_openvino_sort_demo
 
 
 # 실행
@@ -173,6 +188,10 @@ run-v5-tracking: $(TARGET_V5_TRACKING)
 # YOLOv5 + SORT + Line Crossing 버전 실행
 run-v5-line-crossing: $(TARGET_V5_LINE_CROSSING)
 	./$(TARGET_V5_LINE_CROSSING)
+
+# YOLOv5 + SORT + Line Crossing + 시각화 버전 실행
+run-v5-line-crossing-visual: $(TARGET_V5_LINE_CROSSING_VISUAL)
+	./$(TARGET_V5_LINE_CROSSING_VISUAL)
 
 # YOLOv5 + SORT + Line Crossing + Risk Analysis 버전 실행
 run-v5-risk-analysis: $(TARGET_V5_RISK_ANALYSIS)
@@ -213,6 +232,7 @@ help:
 	@echo "  v5         - Build YOLOv5 version (mainv5.cpp logic, headless)"
 	@echo "  v5-tracking - Build YOLOv5 + SORT tracking version (headless)"
 	@echo "  v5-line-crossing - Build YOLOv5 + SORT + Line Crossing version (headless)"
+	@echo "  v5-line-crossing-visual - Build YOLOv5 + SORT + Line Crossing + 시각화 version (with OpenCV GUI)"
 	@echo "  v5-risk-analysis - Build YOLOv5 + SORT + Line Crossing + Risk Analysis version (with main_control.cpp logic)"
 	@echo "  v5-rtsp     - Build YOLOv5 + SORT + Risk Analysis + RTSP streaming version"
 	@echo "  clean      - Remove built files"
@@ -223,6 +243,7 @@ help:
 	@echo "  run-v5     - Build and run the YOLOv5 version (mainv5.cpp logic)"
 	@echo "  run-v5-tracking - Build and run the YOLOv5 + SORT tracking version"
 	@echo "  run-v5-line-crossing - Build and run the YOLOv5 + SORT + Line Crossing version"
+	@echo "  run-v5-line-crossing-visual - Build and run the YOLOv5 + SORT + Line Crossing + 시각화 version"
 	@echo "  run-v5-risk-analysis - Build and run the YOLOv5 + Risk Analysis version (with main_control.cpp logic)"
 	@echo "  run-v5-rtsp - Build and run the YOLOv5 + Risk Analysis + RTSP streaming version"
 	@echo "  debug      - Build with debug information"
@@ -230,4 +251,4 @@ help:
 	@echo "  install-system - Build using system-installed OpenVINO"
 	@echo "  help       - Show this help message"
 
-.PHONY: all headless yolo11n v2 v5 v5-tracking v5-line-crossing v5-risk-analysis v5-rtsp clean run run-headless run-yolo11n run-v2 run-v5 run-v5-tracking run-v5-line-crossing run-v5-risk-analysis run-v5-rtsp debug check-deps install-system help
+.PHONY: all headless yolo11n v2 v5 v5-tracking v5-line-crossing v5-line-crossing-visual v5-risk-analysis v5-rtsp clean run run-headless run-yolo11n run-v2 run-v5 run-v5-tracking run-v5-line-crossing run-v5-line-crossing-visual run-v5-risk-analysis run-v5-rtsp debug check-deps install-system help

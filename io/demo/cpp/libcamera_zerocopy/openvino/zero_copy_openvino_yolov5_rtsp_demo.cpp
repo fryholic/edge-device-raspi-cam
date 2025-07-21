@@ -117,7 +117,6 @@ struct RTSPMetadata {
     std::vector<Detection> detections;
     std::vector<Track> tracks;
     std::vector<CrossingEvent> crossings;
-    std::string risk_alerts;
     double fps;
     
     // JSON 형태로 직렬화
@@ -166,34 +165,15 @@ struct RTSPMetadata {
                << ",\"point\":{\"x\":" << crossings[i].crossing_point.x 
                << ",\"y\":" << crossings[i].crossing_point.y << "}}";
         }
-        ss << "],";
-        
-        // Risk alerts
-        ss << "\"risk_alerts\":\"" << risk_alerts << "\"";
+        ss << "]";
         ss << "}";
         
         return ss.str();
     }
 };
 
-// ObjectState 구조체 (main_control.cpp와 동일)
-struct ObjectState {
-    std::deque<Point> history;
-};
-
-// 전역 변수들 (main_control.cpp에서 가져온 것들)
-std::recursive_mutex data_mutex;
-std::vector<std::tuple<int, Point, int, Point>> base_line_pairs;
-Point dot_center = {0, 0};
-std::unordered_map<std::string, Line> rule_lines;
-std::unordered_map<int, ObjectState> vehicle_trajectory_history;
-
-// 설정값 (main_control.cpp와 동일)
-constexpr float dist_threshold = 10.0f;         
-constexpr float parrallelism_threshold = 0.75f; 
-constexpr int HISTORY_SIZE = 10; 
-
-// RTSP 스트리밍 관련 전역 변수
+// Line crossing detection history size
+constexpr int HISTORY_SIZE = 10;// RTSP 스트리밍 관련 전역 변수
 GstRTSPServer* rtsp_server = nullptr;
 GstRTSPMountPoints* mounts = nullptr;
 GMainLoop* main_loop = nullptr;
@@ -272,232 +252,13 @@ bool initializeDatabase() {
     }
 }
 
-    // 서버에서 라인 정보 가져오기 (간단한 HTTP 클라이언트 또는 DB 직접 접근)
-bool loadLineConfigsFromServer() {
-    try {
-        std::cout << "[loadLineConfigsFromServer] Starting to load line configs..." << std::endl;
-        
-        // DB 파일 존재 확인
-        if (!std::filesystem::exists(DB_FILE)) {
-            std::cerr << "[ERROR] Database file does not exist: " << DB_FILE << std::endl;
-            return false;
-        }
-        
-        SQLite::Database db(DB_FILE, SQLite::OPEN_READONLY);
-        
-        std::lock_guard<std::recursive_mutex> lock(data_mutex);
-        rule_lines.clear();
-        
-        // lines 테이블에서 데이터 로드 (서버와 동일한 방식)
-        const float scale_x = 3840.0f / 960.0f;
-        const float scale_y = 2160.0f / 540.0f;
-        
-        SQLite::Statement query(db, "SELECT x1, y1, x2, y2, name, mode FROM lines LIMIT 8");
-
-        int line_count = 0;
-        while (query.executeStep()) {
-            try {
-                Line line;
-                line.start = { query.getColumn(0).getInt() * scale_x, query.getColumn(1).getInt() * scale_y };
-                line.end   = { query.getColumn(2).getInt() * scale_x, query.getColumn(3).getInt() * scale_y };
-                line.name = query.getColumn(4).getString();
-                line.mode = query.getColumn(5).getString();
-
-                rule_lines[line.name] = line;
-                line_count++;
-
-                if (line_count <= 3) { // 처음 3개만 로그 출력
-                    std::cout << "[DEBUG] Loaded line from server: " << line.name
-                              << " [(" << line.start.x << "," << line.start.y << ") -> ("
-                              << line.end.x << "," << line.end.y << ")] Mode: " << line.mode << std::endl;
-                }
-            } catch (const std::exception& e) {
-                std::cerr << "[ERROR] Failed to process line row: " << e.what() << std::endl;
-                continue; // 개별 라인 처리 실패 시 계속 진행
-            }
-        }
-        
-        std::cout << "[INFO] Successfully loaded " << rule_lines.size() << " lines from server." << std::endl;
-        return rule_lines.size() > 0;
-        
-    } catch (const std::exception& e) {
-        std::cerr << "[ERROR] Failed to load line configs from server: " << e.what() << std::endl;
-        return false;
-    }
-}
-
-// 서버에서 base line pairs 가져오기
-bool loadBaseLinePairsFromServer() {
-    try {
-        std::cout << "[loadBaseLinePairsFromServer] Starting to load base line pairs..." << std::endl;
-        
-        // DB 파일 존재 확인
-        if (!std::filesystem::exists(DB_FILE)) {
-            std::cerr << "[ERROR] Database file does not exist: " << DB_FILE << std::endl;
-            return false;
-        }
-        
-        SQLite::Database db(DB_FILE, SQLite::OPEN_READONLY);
-        
-        std::lock_guard<std::recursive_mutex> lock(data_mutex);
-        base_line_pairs.clear();
-        
-        const float scale_x = 3840.0f / 960.0f;
-        const float scale_y = 2160.0f / 540.0f;
-        
-        SQLite::Statement query(db, "SELECT matrixNum1, x1, y1, matrixNum2, x2, y2 FROM baseLines");
-
-        int pair_count = 0;
-        while (query.executeStep()) {
-            try {
-                int id1 = query.getColumn(0).getInt();
-                Point p1 = {query.getColumn(1).getInt() * scale_x, query.getColumn(2).getInt() * scale_y};
-                int id2 = query.getColumn(3).getInt();
-                Point p2 = {query.getColumn(4).getInt() * scale_x, query.getColumn(5).getInt() * scale_y};
-
-                base_line_pairs.emplace_back(id1, p1, id2, p2);
-                pair_count++;
-
-                if (pair_count <= 2) { // 처음 2개만 로그 출력
-                    std::cout << "[DEBUG] Loaded base line pair: " << id1 << "<->" << id2
-                              << " (" << p1.x << "," << p1.y << ") <-> (" << p2.x << "," << p2.y << ")" << std::endl;
-                }
-            } catch (const std::exception& e) {
-                std::cerr << "[ERROR] Failed to process base line pair row: " << e.what() << std::endl;
-                continue;
-            }
-        }
-        
-        // dot_center 계산 (main_control.cpp와 동일한 로직)
-        if (base_line_pairs.size() >= 2) {
-            // 교차점 계산 로직 (간단히 중점으로 계산)
-            dot_center = {
-                (std::get<1>(base_line_pairs[0]).x + std::get<3>(base_line_pairs[0]).x + 
-                 std::get<1>(base_line_pairs[1]).x + std::get<3>(base_line_pairs[1]).x) / 4,
-                (std::get<1>(base_line_pairs[0]).y + std::get<3>(base_line_pairs[0]).y + 
-                 std::get<1>(base_line_pairs[1]).y + std::get<3>(base_line_pairs[1]).y) / 4
-            };
-        } else if (base_line_pairs.size() == 1) {
-            dot_center = {
-                (std::get<1>(base_line_pairs[0]).x + std::get<3>(base_line_pairs[0]).x) / 2,
-                (std::get<1>(base_line_pairs[0]).y + std::get<3>(base_line_pairs[0]).y) / 2
-            };
-        }
-        
-        std::cout << "[INFO] Calculated dot_center: (" << dot_center.x << ", " << dot_center.y << ")" << std::endl;
-        return base_line_pairs.size() > 0;
-        
-    } catch (const std::exception& e) {
-        std::cerr << "[ERROR] Failed to load base line pairs from server: " << e.what() << std::endl;
-        return false;
-    }
-}
-
-// main_control.cpp의 코사인 유사도 계산 함수
+// Cosine similarity function (kept for potential future use)
 float compute_cosine_similarity(const Point& a, const Point& b) {
     float dot = a.x * b.x + a.y * b.y;
     float mag_a = sqrt(a.x * a.x + a.y * a.y);
     float mag_b = sqrt(b.x * b.x + b.y * b.y);
     if (mag_a == 0 || mag_b == 0) return -2.0f;
     return dot / (mag_a * mag_b);
-}
-
-// main_control.cpp의 analyze_risk_and_alert 로직을 이식한 함수 (RTSP 메타데이터용 수정)
-std::string analyze_risk_and_alert_edge(int human_id, const std::string& rule_name) {
-    std::lock_guard<std::recursive_mutex> lock(data_mutex);
-    std::stringstream alert_ss;
-
-    std::cout << "[DEBUG] Analyzing risk for human_id: " << human_id << " crossing line: " << rule_name << std::endl;
-
-    // 1. 이벤트 라인 정보 확인
-    if (rule_lines.find(rule_name) == rule_lines.end()) {
-        std::cout << "[DEBUG] Step Failed: RuleName '" << rule_name << "' not found in predefined lines." << std::endl;
-        return "";
-    }
-
-    Line crossed_line = rule_lines.at(rule_name);
-    Point line_vector = {
-        crossed_line.end.x - crossed_line.start.x,
-        crossed_line.end.y - crossed_line.start.y
-    };
-
-    // 2. 차량 이력 존재 확인
-    std::cout << "[DEBUG] Vehicle history size: " << vehicle_trajectory_history.size() << std::endl;
-    if (vehicle_trajectory_history.empty()) {
-        std::cout << "[DEBUG] Step Failed: No vehicles detected to analyze." << std::endl;
-        return "";
-    }
-
-    // 3. 각 차량 반복
-    for (const auto& [vehicle_id, vehicle_state] : vehicle_trajectory_history) {
-        std::cout << "[DEBUG] Vehicle " << vehicle_id << " history size: " << vehicle_state.history.size() << std::endl;
-
-        if (vehicle_state.history.size() < 2) {
-            std::cout << "[DEBUG] Vehicle " << vehicle_id << ": Insufficient history. Skipping." << std::endl;
-            continue;
-        }
-
-        // 가장 오래된 위치와 최근 위치 추출
-        const Point& oldest_pos = vehicle_state.history.front();
-        const Point& newest_pos = vehicle_state.history.back();
-
-        // 4. 가장 가까운 dot 쌍 탐색
-        Point closest_dot;
-        int board_id = -1;
-        float min_dist_sq = std::numeric_limits<float>::max();
-
-        for (const auto& [id1, p1, id2, p2] : base_line_pairs) {
-            float d1 = pow(oldest_pos.x - p1.x, 2) + pow(oldest_pos.y - p1.y, 2);
-            float d2 = pow(oldest_pos.x - p2.x, 2) + pow(oldest_pos.y - p2.y, 2);
-
-            if (d1 < min_dist_sq) {
-                min_dist_sq = d1;
-                closest_dot = p1;
-                board_id = id2;
-            }
-
-            if (d2 < min_dist_sq) {
-                min_dist_sq = d2;
-                closest_dot = p2;
-                board_id = id1;
-            }
-        }
-
-        std::cout << "[DEBUG] Vehicle " << vehicle_id << ": Closest dot = (" << closest_dot.x << "," << closest_dot.y << ")" << std::endl;
-
-        // 5. dot_center 접근 여부 확인
-        float dist_old = hypot(oldest_pos.x - dot_center.x, oldest_pos.y - dot_center.y);
-        float dist_new = hypot(newest_pos.x - dot_center.x, newest_pos.y - dot_center.y);
-
-        std::cout << "[DEBUG] Vehicle " << vehicle_id << ": Old dist to dot_center = " << dist_old << ", New dist = " << dist_new << std::endl;
-
-        if (dist_new > dist_old - dist_threshold) {
-            std::cout << "[DEBUG] Step Failed (Vehicle " << vehicle_id << "): Not approaching dot_center enough." << std::endl;
-            continue;
-        }
-
-        // 6. 벡터 유사도 분석
-        Point vehicle_vector = {dot_center.x - closest_dot.x, dot_center.y - closest_dot.y};
-        float similarity = compute_cosine_similarity(vehicle_vector, line_vector);
-
-        std::cout << "[DEBUG] Vehicle " << vehicle_id << ": Cosine similarity = " << similarity << ", Threshold = " << parrallelism_threshold << std::endl;
-
-        if (abs(similarity) >= parrallelism_threshold) {
-            std::cout << "\n[ALERT] 🚨 위험 감지! 🚨" << std::endl;
-            std::cout << "차량 " << vehicle_id << "이 사람 " << human_id << "을 향해 측면에서 접근 중입니다." << std::endl;
-            std::cout << "Matrix " << board_id << "를 가동해야 합니다." << std::endl;
-            std::cout << "(코사인 유사도: " << similarity << ")" << std::endl;
-            
-            alert_ss << "ALERT: Vehicle " << vehicle_id << " approaching human " << human_id 
-                     << " from side. Matrix " << board_id << " should be activated. "
-                     << "Cosine similarity: " << similarity << "; ";
-            
-        } else {
-            std::cout << "[DEBUG] Step Failed (Vehicle " << vehicle_id << "): Cosine similarity not high enough." << std::endl;
-        }
-    }
-    
-    return alert_ss.str();
 }
 
 // RTSP 서버 설정
@@ -513,10 +274,6 @@ static void need_data(GstElement* appsrc, guint unused, gpointer user_data) {
 static void enough_data(GstElement* appsrc, gpointer user_data) {
     // appsrc 버퍼가 가득 찼을 때 호출
     // std::cout << "[RTSP] Enough data callback" << std::endl;
-}
-
-static void media_prepare(GstRTSPMedia *media, gpointer user_data) {
-    std::cout << "[RTSP] Media prepare callback" << std::endl;
 }
 
 static void media_unprepared(GstRTSPMedia *media, gpointer user_data) {
@@ -966,30 +723,12 @@ public:
         loadConfigurations();
     }
     
-    // 서버에서 설정 로드
+    // 서버에서 설정 로드 (line crossing zones only)
     void loadConfigurations() {
-        std::cout << "[RTSPLineCrossingDetector] Loading configurations from server..." << std::endl;
+        std::cout << "[RTSPLineCrossingDetector] Loading line crossing configurations..." << std::endl;
         
-        // 서버에서 라인 설정과 base line pairs 로드
-        bool lines_ok = loadLineConfigsFromServer();
-        bool base_ok = loadBaseLinePairsFromServer();
-        
-        if (lines_ok && base_ok) {
-            std::cout << "[RTSPLineCrossingDetector] Server configurations loaded successfully." << std::endl;
-            
-            // rule_lines를 zones로 변환
-            std::lock_guard<std::mutex> lock(zones_mutex);
-            zones.clear();
-            
-            for (const auto& [name, line] : rule_lines) {
-                LineCrossingZone zone(line.start, line.end, name, line.mode);
-                zones.push_back(zone);
-                std::cout << "[DEBUG] Added zone from server: " << zone.name << std::endl;
-            }
-        } else {
-            std::cout << "[RTSPLineCrossingDetector] Failed to load from server, using fallback zones..." << std::endl;
-            initializeFallbackZones();
-        }
+        // 폴백 영역 사용 (위험 감지 관련 서버 로딩 제거)
+        initializeFallbackZones();
     }
     
     // 폴백 영역 초기화
@@ -1052,50 +791,17 @@ public:
         return A * pt.x + B * pt.y + C;
     }
     
-    // 차량 위치 업데이트 (main_control.cpp 로직 적용)
-    void updateVehiclePositions(const std::vector<Track>& tracks) {
-        std::lock_guard<std::recursive_mutex> lock(data_mutex);
-        
-        std::unordered_map<int, bool> seen_vehicles;
-        
-        for (const auto& track : tracks) {
-            // class 0이 person이므로 vehicle tracking은 별도 구현 필요
-            // 여기서는 예시로 person을 vehicle로 간주
-            Point center = getBboxCenter(track.bbox);
-            
-            seen_vehicles[track.id] = true;
-            auto& state = vehicle_trajectory_history[track.id];
-            state.history.push_back(center);
-            if (state.history.size() > HISTORY_SIZE) {
-                state.history.pop_front();
-            }
-            
-            std::cout << "[DEBUG] Tracking Object " << track.id << " at (" << center.x << ", " << center.y << ")" << std::endl;
-        }
-        
-        // 사라진 객체 정리
-        for (auto it = vehicle_trajectory_history.begin(); it != vehicle_trajectory_history.end(); ) {
-            if (seen_vehicles.find(it->first) == seen_vehicles.end()) {
-                std::cout << "[DEBUG] Object " << it->first << " disappeared. Erasing." << std::endl;
-                it = vehicle_trajectory_history.erase(it);
-            } else {
-                ++it;
-            }
-        }
-    }
+    // 차량 위치 업데이트 (removed - risk analysis no longer needed)
+    // void updateVehiclePositions(const std::vector<Track>& tracks) - REMOVED
     
-    // Line crossing 검사 및 위험 분석 통합 (RTSP 메타데이터 생성)
-    std::vector<CrossingEvent> checkCrossingsWithRiskAnalysis(const std::vector<Track>& tracks, RTSPMetadata& metadata) {
+    // Line crossing 검사 (위험 분석 부분 제거)
+    std::vector<CrossingEvent> checkCrossings(const std::vector<Track>& tracks, RTSPMetadata& metadata) {
         std::lock_guard<std::mutex> lock(zones_mutex);
         
         // 주기적으로 서버 설정 업데이트 확인
         checkForUpdates();
         
-        // 차량 위치 업데이트
-        updateVehiclePositions(tracks);
-        
         std::vector<CrossingEvent> new_crossings;
-        std::string combined_alerts;
         
         for (const auto& track : tracks) {
             Point center = getBboxCenter(track.bbox);
@@ -1115,12 +821,6 @@ public:
                         std::cout << "  - Object ID: " << track.id << std::endl;
                         std::cout << "  - Zone: " << zone.name << std::endl;
                         std::cout << "  - Position: (" << center.x << ", " << center.y << ")" << std::endl;
-                        
-                        // main_control.cpp의 위험 분석 로직 적용
-                        std::string alert = analyze_risk_and_alert_edge(track.id, zone.name);
-                        if (!alert.empty()) {
-                            combined_alerts += alert;
-                        }
                     }
                 }
                 
@@ -1128,8 +828,7 @@ public:
             }
         }
         
-        // 메타데이터에 위험 경고 추가
-        metadata.risk_alerts = combined_alerts;
+        // 메타데이터에 crossing 정보만 추가 (위험 경고 제거)
         metadata.crossings = new_crossings;
         
         // 오래된 crossing 이벤트 정리
@@ -1206,16 +905,16 @@ cv::Mat letterbox(const cv::Mat& src, cv::Mat& out, float& scale, int& pad_x, in
 }
 
 // RTSP용 OpenVINO YOLOv5 inference class
-class RTSPOpenVINOYOLOv5TrackerWithRiskAnalysis {
+class RTSPOpenVINOYOLOv5Tracker {
 public:
-    RTSPOpenVINOYOLOv5TrackerWithRiskAnalysis(const std::string& model_xml, const std::string& device = "CPU") 
+    RTSPOpenVINOYOLOv5Tracker(const std::string& model_xml, const std::string& device = "CPU") 
         : frame_counter(0), sort_tracker(5, 2, 0.3f) {
         core = std::make_shared<ov::Core>();
         model = core->read_model(model_xml);
         compiled_model = core->compile_model(model, device);
         infer_request = compiled_model.create_infer_request();
         
-        std::cout << "RTSP OpenVINO YOLOv5 + SORT + Risk Analysis 초기화 완료" << std::endl;
+        std::cout << "RTSP OpenVINO YOLOv5 + SORT 초기화 완료" << std::endl;
         std::cout << "입력 크기: " << input_width << "x" << input_height << std::endl;
     }
 
@@ -1224,7 +923,7 @@ public:
     RTSPLineCrossingDetector rtsp_detector;
     int frame_counter;
 
-    RTSPMetadata inferTrackAndAnalyzeForRTSP(const cv::Mat& frame, double fps) {
+    RTSPMetadata inferTrackForRTSP(const cv::Mat& frame, double fps) {
         auto start_time = std::chrono::steady_clock::now();
         
         RTSPMetadata metadata;
@@ -1246,8 +945,8 @@ public:
         
         auto tracking_time = std::chrono::steady_clock::now();
         
-        // 3. Line crossing 검사 및 위험 분석 (main_control.cpp 로직 포함)
-        auto crossings = rtsp_detector.checkCrossingsWithRiskAnalysis(tracks, metadata);
+        // 3. Line crossing 검사
+        auto crossings = rtsp_detector.checkCrossings(tracks, metadata);
         rtsp_detector.clearOldTracks(tracks);
         
         auto analysis_time = std::chrono::steady_clock::now();
@@ -1260,11 +959,11 @@ public:
 
         // 결과 출력
         if (!tracks.empty() || !crossings.empty()) {
-            std::cout << "=== RTSP YOLOv5 + SORT + Risk Analysis 결과 ===" << std::endl;
+            std::cout << "=== RTSP YOLOv5 + SORT 결과 ===" << std::endl;
             std::cout << "프레임 #" << frame_counter << " - 감지: " << detections.size() << ", 추적: " << tracks.size() 
                       << ", 신규 crossing: " << crossings.size() << ", FPS: " << std::fixed << std::setprecision(1) << fps << std::endl;
             std::cout << "처리 시간 - 추론: " << inference_ms << "ms, 트래킹: " << tracking_ms 
-                      << "ms, 위험분석: " << analysis_ms << "ms, 총: " << total_ms << "ms" << std::endl;
+                      << "ms, 분석: " << analysis_ms << "ms, 총: " << total_ms << "ms" << std::endl;
             
             for (const auto& track : tracks) {
                 std::cout << "  - ID: " << track.id << ", person (신뢰도: " << std::fixed << std::setprecision(2) << track.confidence 
@@ -1272,11 +971,7 @@ public:
             }
             
             if (!crossings.empty()) {
-                std::cout << "🚨 새로운 Line Crossing 이벤트 및 위험 분석 완료: " << crossings.size() << "개" << std::endl;
-            }
-            
-            if (!metadata.risk_alerts.empty()) {
-                std::cout << "⚠️  위험 경고: " << metadata.risk_alerts << std::endl;
+                std::cout << "🚨 새로운 Line Crossing 이벤트: " << crossings.size() << "개" << std::endl;
             }
             std::cout << "=========================================" << std::endl;
         }
@@ -1396,7 +1091,7 @@ class RTSPZeroCopyOpenVINOTracker {
     std::vector<std::vector<size_t>> bufferPlaneSizes;
     std::atomic<bool> stopping{false};
 
-    std::unique_ptr<RTSPOpenVINOYOLOv5TrackerWithRiskAnalysis> rtsp_tracker;
+    std::unique_ptr<RTSPOpenVINOYOLOv5Tracker> rtsp_tracker;
 
     // FPS 측정을 위한 변수들
     std::chrono::steady_clock::time_point lastTime;
@@ -1408,7 +1103,7 @@ class RTSPZeroCopyOpenVINOTracker {
 
 public:
     RTSPZeroCopyOpenVINOTracker(const std::string& model_xml) {
-        rtsp_tracker = std::make_unique<RTSPOpenVINOYOLOv5TrackerWithRiskAnalysis>(model_xml);
+        rtsp_tracker = std::make_unique<RTSPOpenVINOYOLOv5Tracker>(model_xml);
         lastTime = std::chrono::steady_clock::now();
     }
 
@@ -1599,8 +1294,8 @@ private:
         cv::Mat frame(STREAM_HEIGHT, STREAM_WIDTH, CV_8UC3, data);
 
         try {
-            // YOLOv5 추론 + 트래킹 + 위험 분석 수행 및 RTSP 메타데이터 생성
-            RTSPMetadata metadata = rtsp_tracker->inferTrackAndAnalyzeForRTSP(frame, fps);
+            // YOLOv5 추론 + 트래킹 수행 및 RTSP 메타데이터 생성
+            RTSPMetadata metadata = rtsp_tracker->inferTrackForRTSP(frame, fps);
 
             // RTSP 메타데이터 큐에 추가 (스레드 안전)
             if (metadata_thread_running) {
@@ -1837,7 +1532,7 @@ void signalHandler(int signum) {
 }
 
 int main(int argc, char* argv[]) {
-    std::cout << "=== RTSP Zero Copy OpenVINO YOLOv5 + SORT + Risk Analysis Demo ===" << std::endl;
+    std::cout << "=== RTSP Zero Copy OpenVINO YOLOv5 + SORT Demo ===" << std::endl;
     std::cout << "모델 경로: " << YOLO_MODEL_PATH << std::endl;
     std::cout << "RTSP 스트림: rtsp://localhost:" << RTSP_PORT << RTSP_PATH << std::endl;
     
@@ -1881,7 +1576,7 @@ int main(int argc, char* argv[]) {
         tracker->run();
 
         // 메인 루프
-        std::cout << "YOLOv5 + SORT + Risk Analysis 실행 중... (Ctrl+C로 종료)" << std::endl;
+        std::cout << "YOLOv5 + SORT 실행 중... (Ctrl+C로 종료)" << std::endl;
         while (!shouldExit.load()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }

@@ -280,7 +280,6 @@ public:
         config = camera->generateConfiguration({StreamRole::Viewfinder});
         StreamConfiguration& streamConfig = config->at(0);
         streamConfig.size = Size(CAPTURE_WIDTH, CAPTURE_HEIGHT);
-        // ** Libcamera 설정 복원: 카메라 출력 포맷을 RGB888로 설정 **
         streamConfig.pixelFormat = libcamera::formats::BGR888;
         streamConfig.bufferCount = 8;
         config->validate();

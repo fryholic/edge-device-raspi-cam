@@ -1,10 +1,11 @@
-// zero_copy_rtsp_demo_v13_final.cpp
+// zero_copy_rtsp_demo_stable_final_v2.cpp
 // libcamera를 사용한 Zero-Copy 프레임 캡처 및 GStreamer를 이용한 RTSP 스트리밍
 //
-// 수정 사항 (v13 - 최종 수정):
-// 1. Appsrc Caps 수정: colorimetry 값을 "bt709"에서 표준 RGB 색 공간인 "srgb"로 변경하여
-//    하드웨어 색상 변환 오류(검은 화면 문제)를 최종 해결.
-// 2. 컴파일 오류 수정: std::this_thread.sleep_for -> std::this_thread::sleep_for
+// 수정 사항:
+// 1. GStreamer Caps 협상 오류 해결: `appsrc`에 설정하는 Caps에 `colorimetry` 필드를
+//    명시적으로 추가하여 하드웨어 인코더(v4l2h264enc)와의 규격 협상이 성공하도록
+//    수정했습니다. 이로써 'not-negotiated' 오류를 해결하고 스트리밍이 정상적으로
+//    시작됩니다.
 //
 // 빌드 방법:
 // make rtsp-demo
@@ -121,8 +122,7 @@ public:
         mounts = gst_rtsp_server_get_mount_points(server);
         factory = gst_rtsp_media_factory_new();
 
-        // ** GStreamer 파이프라인 수정: v4l2convert와 v4l2h264enc 사이에 queue 추가 **
-        std::string pipeline_str = "appsrc name=mysrc ! queue ! v4l2convert ! video/x-raw,format=NV12 ! queue ! v4l2h264enc ! video/x-h264,level=(string)4 ! rtph264pay name=pay0 pt=96";
+        std::string pipeline_str = "appsrc name=mysrc ! queue ! v4l2h264enc ! video/x-h264,level=(string)4 ! rtph264pay name=pay0 pt=96";
         std::cout << "[DEBUG] GStreamer Pipeline: " << pipeline_str << std::endl;
         gst_rtsp_media_factory_set_launch(factory, pipeline_str.c_str());
         gst_rtsp_media_factory_set_shared(factory, TRUE);
@@ -208,14 +208,14 @@ private:
             return;
         }
         
-        // ** Appsrc Caps 수정: colorimetry 값을 "srgb"로 변경 **
+        // ** 수정: 'not-negotiated' 오류 해결을 위해 colorimetry 필드 추가 **
         GstCaps* caps = gst_caps_new_simple("video/x-raw",
-                                            "format", G_TYPE_STRING, "RGB",
+                                            "format", G_TYPE_STRING, "NV12",
                                             "width", G_TYPE_INT, width,
                                             "height", G_TYPE_INT, height,
                                             "framerate", GST_TYPE_FRACTION, fps, 1,
                                             "interlace-mode", G_TYPE_STRING, "progressive",
-                                            "colorimetry", G_TYPE_STRING, "srgb",
+                                            "colorimetry", G_TYPE_STRING, "bt709",
                                             NULL);
         
         std::cout << "[DEBUG] Setting appsrc caps to: " << gst_caps_to_string(caps) << std::endl;
@@ -280,8 +280,7 @@ public:
         config = camera->generateConfiguration({StreamRole::Viewfinder});
         StreamConfiguration& streamConfig = config->at(0);
         streamConfig.size = Size(CAPTURE_WIDTH, CAPTURE_HEIGHT);
-        // ** Libcamera 설정 복원: 카메라 출력 포맷을 RGB888로 설정 **
-        streamConfig.pixelFormat = libcamera::formats::BGR888;
+        streamConfig.pixelFormat = libcamera::formats::NV12;
         streamConfig.bufferCount = 8;
         config->validate();
         
@@ -427,7 +426,6 @@ public:
             }
         }
         
-        // ** 프레임 크기 계산 복원: RGB888은 단일 평면이므로 첫 번째 plane의 크기만 사용 **
         frame_queue.push({bufferPlaneMappings[bufferIndex][0], buffer->planes()[0].length, bufferIndex});
         
         request->reuse(Request::ReuseBuffers);
@@ -465,7 +463,7 @@ int main() {
     signal(SIGTERM, signalHandler);
 
     std::cout << "========================================================" << std::endl;
-    std::cout << "   Zero-Copy Camera to RTSP Streamer (v13 - Final)" << std::endl;
+    std::cout << "   Zero-Copy Camera to RTSP Streamer (Stable NV12 Final)" << std::endl;
     std::cout << "========================================================" << std::endl;
 
     try {

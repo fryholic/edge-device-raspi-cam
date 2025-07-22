@@ -11,6 +11,10 @@ CXXFLAGS = -std=c++17 -g -O2 -Wall
 TARGET_RTSP_DEMO = zero_copy_rtsp_demo
 SOURCE_RTSP_DEMO = zero_copy_rtsp_demo.cpp
 
+# --- 새로운 RTSP 데모 설정 ---
+TARGET_RTSP_DEMO_V4L2CONVERT = zero_copy_rtsp_demo_convert
+SOURCE_RTSP_DEMO_V4L2CONVERT = zero_copy_rtsp_demo_convert.cpp
+
 # --- 라이브러리 설정 ---
 # OpenVINO 설정
 OPENVINO_INCLUDE = -I/usr/local/runtime/include
@@ -41,7 +45,7 @@ INCLUDES = $(OPENVINO_INCLUDE) $(OPENCV_INCLUDE) $(LIBCAMERA_INCLUDE) $(EIGEN_IN
 LIBS_RTSP_DEMO = $(LIBCAMERA_LIBS) $(GSTREAMER_LIBS) -lpthread
 
 # --- 빌드 규칙 ---
-all: rtsp-demo
+all: rtsp-demo rtsp-demo-v4l2convert
 
 # 새로운 Zero Copy + RTSP 데모 버전 빌드
 rtsp-demo: $(TARGET_RTSP_DEMO)
@@ -49,13 +53,22 @@ rtsp-demo: $(TARGET_RTSP_DEMO)
 $(TARGET_RTSP_DEMO): $(SOURCE_RTSP_DEMO)
 	$(CXX) $(CXXFLAGS) $(LIBCAMERA_INCLUDE) $(GSTREAMER_INCLUDE) -o $(TARGET_RTSP_DEMO) $(SOURCE_RTSP_DEMO) $(LIBS_RTSP_DEMO)
 
+# 새로운 Zero Copy + RTSP 데모 버전 빌드
+rtsp-demo-v4l2convert: $(TARGET_RTSP_DEMO_V4L2CONVERT)
+
+$(TARGET_RTSP_DEMO_V4L2CONVERT): $(SOURCE_RTSP_DEMO_V4L2CONVERT)
+	$(CXX) $(CXXFLAGS) $(LIBCAMERA_INCLUDE) $(GSTREAMER_INCLUDE) -o $(TARGET_RTSP_DEMO_V4L2CONVERT) $(SOURCE_RTSP_DEMO_V4L2CONVERT) $(LIBS_RTSP_DEMO)
+
 # --- 정리 ---
 clean:
-	rm -f $(TARGET_RTSP_DEMO) # ... (다른 타겟들)
+	rm -f $(TARGET_RTSP_DEMO) $(TARGET_RTSP_DEMO_V4L2CONVERT) # ... (다른 타겟들)
 
 # --- 실행 ---
 run-rtsp-demo: $(TARGET_RTSP_DEMO)
 	./$(TARGET_RTSP_DEMO)
+
+run-rtsp-demo-v4l2convert: $(TARGET_RTSP_DEMO_V4L2CONVERT)
+	./$(TARGET_RTSP_DEMO_V4L2CONVERT)
 
 # --- 도움말 ---
 help:

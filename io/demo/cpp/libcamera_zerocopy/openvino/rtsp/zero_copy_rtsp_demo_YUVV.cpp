@@ -122,7 +122,7 @@ public:
         factory = gst_rtsp_media_factory_new();
 
         // ** GStreamer 파이프라인 수정: v4l2convert와 v4l2h264enc 사이에 queue 추가 **
-        std::string pipeline_str = "appsrc name=mysrc ! queue ! v4l2convert ! video/x-raw,format=NV12 ! queue ! v4l2h264enc ! video/x-h264,level=(string)4 ! rtph264pay name=pay0 pt=96";
+        std::string pipeline_str = "appsrc name=mysrc ! queue ! videoconvert ! video/x-raw,format=NV12 ! queue ! v4l2h264enc ! video/x-h264,level=(string)4 ! rtph264pay name=pay0 pt=96";
         std::cout << "[DEBUG] GStreamer Pipeline: " << pipeline_str << std::endl;
         gst_rtsp_media_factory_set_launch(factory, pipeline_str.c_str());
         gst_rtsp_media_factory_set_shared(factory, TRUE);
@@ -210,12 +210,12 @@ private:
         
         // ** Appsrc Caps 수정: colorimetry 값을 "srgb"로 변경 **
         GstCaps* caps = gst_caps_new_simple("video/x-raw",
-                                            "format", G_TYPE_STRING, "RGB",
+                                            "format", G_TYPE_STRING, "NV12",
                                             "width", G_TYPE_INT, width,
                                             "height", G_TYPE_INT, height,
                                             "framerate", GST_TYPE_FRACTION, fps, 1,
                                             "interlace-mode", G_TYPE_STRING, "progressive",
-                                            "colorimetry", G_TYPE_STRING, "srgb",
+                                            //"colorimetry", G_TYPE_STRING, "srgb",
                                             NULL);
         
         std::cout << "[DEBUG] Setting appsrc caps to: " << gst_caps_to_string(caps) << std::endl;
@@ -281,7 +281,7 @@ public:
         StreamConfiguration& streamConfig = config->at(0);
         streamConfig.size = Size(CAPTURE_WIDTH, CAPTURE_HEIGHT);
         // ** Libcamera 설정 복원: 카메라 출력 포맷을 RGB888로 설정 **
-        streamConfig.pixelFormat = libcamera::formats::BGR888;
+        streamConfig.pixelFormat = libcamera::formats::NV12;
         streamConfig.bufferCount = 8;
         config->validate();
         
